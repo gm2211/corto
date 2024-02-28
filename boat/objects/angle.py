@@ -1,3 +1,5 @@
-class Angle:
-    def __init__(self, degrees: float):
-        self.degrees: float = degrees
+from typing import NamedTuple
+
+
+class Angle(NamedTuple):
+    degrees: float
