@@ -1,7 +1,7 @@
 from typing import NamedTuple
 
 from boat.controls.sail_controller import SailTrim
-from boat.objects.angle import Angle
+from api.objects.angle import Angle
 
 
 class BoatAttitude(NamedTuple):

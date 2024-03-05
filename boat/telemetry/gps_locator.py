@@ -1,4 +1,4 @@
-from boat.objects.gps_coord import GPSCoord
+from api.objects.gps_coord import GPSCoord
 
 
 class GPSLocator:

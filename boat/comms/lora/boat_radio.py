@@ -9,8 +9,12 @@ import adafruit_rfm9x
 import adafruit_ssd1306
 from digitalio import DigitalInOut
 
+from utils import lora_utils as lora
 
-class BoatReceiver:
+UTF_8 = "utf-8"
+
+
+class BoatRadio:
     RADIO_FREQ_MHZ = 915.0
     CS = digitalio.DigitalInOut(board.CE1)
     RESET = digitalio.DigitalInOut(board.D25)
@@ -28,7 +32,7 @@ class BoatReceiver:
         gpio.add_event_detect(self.INTERRUPT_PIN, gpio.RISING)
 
         # Send a packet just to be able to keep listening
-        self.radio.send(bytes("setup", "utf-8"), keep_listening=True)
+        self.radio.send(bytes("setup", UTF_8), keep_listening=True)
 
     def register_callback(self, callback):
         def packet_received_callback(_ignore):
@@ -39,17 +43,19 @@ class BoatReceiver:
             packet = self.radio.receive(timeout=None)
 
             if packet is not None:
-                decoded = packet.decode('utf-8')
+                decoded = packet.decode(UTF_8)
                 self.display.text("Received: {}".format(decoded), 0, 0, 1)
                 self.display.show()
                 callback(packet)
 
         gpio.add_event_callback(self.INTERRUPT_PIN, packet_received_callback)
 
+    def send(self, message):
+        self.radio.send(bytes(message, UTF_8))
+        lora.show_msg(self.display, "Sent: {}".format(message))
 
-boat_receiver = BoatReceiver()
 
-boat_receiver.register_callback(lambda packet: print("FOOO: {}".format(packet)))
+boat_receiver = BoatRadio()
 
 while True:
     time.sleep(0.1)

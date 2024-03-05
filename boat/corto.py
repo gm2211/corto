@@ -1,21 +1,26 @@
 from boat.comms.commands.command_receiver import CommandReceiver
 from boat.controls.boat_attitude_controller import BoatAttitudeController
-from boat.navigation.navigator import CourseCal
-from boat.objects.boat_attitude import BoatAttitude
-from boat.objects.gps_coord import GPSCoord
+from boat.controls.rudder_controller import RudderController
+from boat.controls.sail_controller import SailController
+from boat.navigation.navigator import Navigator
+from api.objects.boat_attitude import BoatAttitude
+from api.objects.gps_coord import GPSCoord
+from boat.telemetry.gps_locator import GPSLocator
+from boat.telemetry.nav_params_recorder import NavParamsRecorder
+from boat.telemetry.wind_vane import WindVane
 
 
 class Corto:
     def __init__(
             self,
             boat_attitude_controller: BoatAttitudeController,
-            course_plotter: CourseCal,
+            navigator: Navigator,
             command_receiver: CommandReceiver):
         self.boat_attitude_controller = boat_attitude_controller
-        self.course_plotter = course_plotter
+        self.course_plotter = navigator
         self.command_receiver = command_receiver
 
-    def runLoop(self) -> None:
+    def run_loop(self) -> None:
         dest: GPSCoord = self.command_receiver.get_cur_destination()
         boat_attitude: BoatAttitude = self.course_plotter.compute_boat_attitude(dest)
         self.boat_attitude_controller.set_attitude(boat_attitude)
@@ -23,8 +28,13 @@ class Corto:
 
 
 if __name__ == "__main__":
-    corto = Corto(None)
+    nav_params_recorder = NavParamsRecorder()
+    boat_controller = BoatAttitudeController(RudderController(), SailController(), nav_params_recorder)
+    navigator = Navigator(WindVane(), GPSLocator(), nav_params_recorder)
+    command_receiver = CommandReceiver()
+
+    corto = Corto(boat_controller, navigator, command_receiver)
 
     while True:
-        corto.runLoop()
+        corto.run_loop()
         pass

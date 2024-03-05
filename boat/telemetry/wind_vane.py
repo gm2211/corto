@@ -1,4 +1,4 @@
-from boat.objects.angle import Angle
+from api.objects.angle import Angle
 
 
 class WindVane:
