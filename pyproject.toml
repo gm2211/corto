@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "corto"
+version = "0.1.0"
+description = ""
+authors = ["gm2211 <gmecocci@outlook.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pyformance = "^0.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

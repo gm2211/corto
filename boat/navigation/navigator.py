@@ -5,9 +5,9 @@ from api.objects.angle import Angle
 from api.objects.boat_attitude import BoatAttitude
 from api.objects.gps_coord import GPSCoord
 from api.objects.nav_params import NavParams
-from boat.telemetry.gps_locator import GPSLocator
+from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
-from boat.telemetry.wind_vane import WindVane
+from boat.telemetry.sensors.wind_vane import WindVane
 
 
 class Navigator:
@@ -17,7 +17,7 @@ class Navigator:
         self.nav_params_recorder = nav_params_recorder
 
     def compute_boat_attitude(self, dest: GPSCoord) -> BoatAttitude:
-        cur_pos: GPSCoord = self.locator.get_cur_location()
+        cur_pos: GPSCoord = self.locator.cur_location()
         nav_params: NavParams = self.nav_params_recorder.get_cur_nav_params()
         cur_heading: Angle = nav_params.heading
         desired_heading: Angle = self.__bearing_to(cur_pos, dest)

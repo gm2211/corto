@@ -5,9 +5,9 @@ from boat.controls.sail_controller import SailController
 from boat.navigation.navigator import Navigator
 from api.objects.boat_attitude import BoatAttitude
 from api.objects.gps_coord import GPSCoord
-from boat.telemetry.gps_locator import GPSLocator
+from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
-from boat.telemetry.wind_vane import WindVane
+from boat.telemetry.sensors.wind_vane import WindVane
 
 
 class Corto:
