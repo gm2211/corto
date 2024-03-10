@@ -3,8 +3,8 @@ from boat.controls.boat_attitude_controller import BoatAttitudeController
 from boat.controls.rudder_controller import RudderController
 from boat.controls.sail_controller import SailController
 from boat.navigation.navigator import Navigator
-from api.objects.boat_attitude import BoatAttitude
-from api.objects.gps_coord import GPSCoord
+from api.objects.nav_params.boat_attitude import BoatAttitude
+from api.objects.units.gps_coord import GPSCoord
 from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
 from boat.telemetry.sensors.wind_vane import WindVane

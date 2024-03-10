@@ -1,7 +1,6 @@
 from typing import NamedTuple
 
-from api.objects.angle import Angle
-from api.objects.gps_coord import GPSCoord
+from api.objects.units.gps_coord import GPSCoord
 
 
 class SetDestination(NamedTuple):

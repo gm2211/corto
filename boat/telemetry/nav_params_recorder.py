@@ -1,5 +1,5 @@
 from boat.controls.sail_controller import SailTrim
-from api.objects.angle import Angle
+from api.objects.units.angle import Angle
 from api.objects.nav_params import NavParams
 
 

@@ -1,7 +1,7 @@
 from boat.controls.rudder_controller import RudderController
 from boat.controls.sail_controller import SailController, SailTrim
-from api.objects.angle import Angle
-from api.objects.boat_attitude import BoatAttitude
+from api.objects.units.angle import Angle
+from api.objects.nav_params.boat_attitude import BoatAttitude
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
 
 

@@ -1,4 +1,4 @@
-from api.objects.angle import Angle
+from api.objects.units.angle import Angle
 from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.sensors.speed_over_water_sensor import SpeedOverWaterSensor
 from boat.telemetry.sensors.wind_vane import WindVane

@@ -1,7 +1,10 @@
+from api.objects.commands.SendTelemetry import SendTelemetry
+from api.objects.commands.SetSail import SetSail
+from api.objects.commands.TurnRudder import TurnRudder
 from boat.comms.lora.boat_radio import BoatRadio
 from boat.controls.boat_attitude_controller import BoatAttitudeController
-from api.objects.angle import Angle
-from api.objects.gps_coord import GPSCoord
+from api.objects.units.angle import Angle
+from api.objects.units.gps_coord import GPSCoord
 
 
 class CommandReceiver:
@@ -15,13 +18,12 @@ class CommandReceiver:
     def get_cur_destination(self) -> GPSCoord:
         return self.cur_dest
 
-    def parse_command(self, command: str) -> None:
-        if command.startswith("DEST"):
-            lat, lon = command.split(" ")[1].split(",")
-            self.cur_dest = GPSCoord(float(lat), float(lon))
-        elif command.startswith("RUDDER"):
-            angle: Angle = Angle(int(command.split(" ")[1]))
-            self.boat_controller.set_rudder_angle(angle)
-        else:
-            print("Unknown command:", command)
-        pass
+    @staticmethod
+    def parse_command(command: str) -> SetSail | TurnRudder | SendTelemetry | None:
+        if SetSail.can_parse_lora_data(command):
+            return SetSail.deserialize_from_lora(command)
+        if TurnRudder.can_parse_lora_data(command):
+            return TurnRudder.deserialize_from_lora(command)
+        if SendTelemetry.can_parse_lora_data(command):
+            return SendTelemetry()
+        return None

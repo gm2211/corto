@@ -1,6 +1,6 @@
-from api.objects.angle import Angle
-from api.objects.gps_coord import GPSCoord
-from api.objects.knots import Knots
+from api.objects.units.angle import Angle
+from api.objects.units.gps_coord import GPSCoord
+from api.objects.units.knots import Knots
 
 
 class GPSLocator:

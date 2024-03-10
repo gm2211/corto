@@ -1,6 +1,6 @@
 from pyformance.meters import Histogram
 
-from api.objects.angle import Angle
+from api.objects.units.angle import Angle
 
 
 class WindVane:

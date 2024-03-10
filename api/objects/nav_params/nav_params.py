@@ -1,9 +1,9 @@
 from typing import NamedTuple
 
 from boat.controls.sail_controller import SailTrim
-from api.objects.angle import Angle
-from api.objects.gps_coord import GPSCoord
-from api.objects.speed import Speed
+from api.objects.units.angle import Angle
+from api.objects.units.gps_coord import GPSCoord
+from api.objects.units.speed import Speed
 
 
 class NavParams(NamedTuple):

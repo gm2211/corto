@@ -1,4 +1,4 @@
-from api.objects.sail_trim import SailTrim
+from api.objects.nav_params.sail_trim import SailTrim
 from boat.controls.servos_controller import ServosController
 
 

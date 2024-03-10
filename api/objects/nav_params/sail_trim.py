@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Type
 
-from api.objects.angle import Angle
+from api.objects.units.angle import Angle
 
 
 class SailTrim(Enum):

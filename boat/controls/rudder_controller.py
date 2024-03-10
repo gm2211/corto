@@ -1,4 +1,4 @@
-from api.objects.angle import Angle
+from api.objects.units.angle import Angle
 from boat.controls.servos_controller import ServosController
 
 

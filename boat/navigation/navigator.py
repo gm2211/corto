@@ -1,9 +1,9 @@
 import math
 
 from boat.controls.sail_controller import SailTrim
-from api.objects.angle import Angle
-from api.objects.boat_attitude import BoatAttitude
-from api.objects.gps_coord import GPSCoord
+from api.objects.units.angle import Angle
+from api.objects.nav_params.boat_attitude import BoatAttitude
+from api.objects.units.gps_coord import GPSCoord
 from api.objects.nav_params import NavParams
 from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.nav_params_recorder import NavParamsRecorder

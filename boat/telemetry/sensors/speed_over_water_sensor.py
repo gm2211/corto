@@ -1,4 +1,4 @@
-from api.objects.knots import Knots
+from api.objects.units.knots import Knots
 
 
 class SpeedOverWaterSensor:
