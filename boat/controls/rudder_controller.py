@@ -10,4 +10,4 @@ class RudderController:
 
     def set_rudder_angle(self, angle: Angle):
         print(f"Setting rudder angle {angle}")
-        self.servos_controller.set_servo(self.SAIL_SERVO_ID, point_of_sail.value)
+        self.servos_controller.set_servo(self.SAIL_SERVO_ID, angle.degrees)

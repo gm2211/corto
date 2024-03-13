@@ -1,12 +1,14 @@
 from typing import NamedTuple
 
+from api.objects.units.angle import Angle
+
 
 class SetSail(NamedTuple):
-    angle: int
+    angle: Angle
     CMD_STRING = "S"
 
     def serialize_for_lora(self):
-        return f"{SetSail.CMD_STRING}{self.angle}"
+        return f"{SetSail.CMD_STRING}{self.angle.degrees:.1f}"
 
     @staticmethod
     def can_parse_lora_data(data: str) -> bool:
@@ -16,4 +18,5 @@ class SetSail(NamedTuple):
     def deserialize_from_lora(data: str) -> 'SetSail':
         if not SetSail.can_parse_lora_data(data):
             raise ValueError(f"Invalid data for SetSail: {data}")
-        return SetSail(int(data[1:]))
+        degrees = float(data[1:])
+        return SetSail(Angle(degrees))

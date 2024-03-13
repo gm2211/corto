@@ -9,14 +9,14 @@ class GPSCoord(NamedTuple):
         return f"{self.lat},{self.lon}"
 
     @staticmethod
-    def can_parse_lora_data(param) -> bool:
+    def can_parse_lora_data(param: str) -> bool:
         try:
             GPSCoord.deserialize_from_lora(param)
         except ValueError:
             return False
 
     @staticmethod
-    def deserialize_from_lora(param):
+    def deserialize_from_lora(param: str):
         lat, lon = param.split(',')
         lat_in_range = lat in range(-90, 91)
         lon_in_range = lon in range(-180, 181)

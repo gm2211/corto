@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from boat.controls.sail_controller import SailTrim
+from api.objects.nav_params.sail_trim import SailTrim
 from api.objects.units.angle import Angle
 from api.objects.units.gps_coord import GPSCoord
 from api.objects.units.speed import Speed
@@ -12,4 +12,12 @@ class NavParams(NamedTuple):
     position: GPSCoord
     speed: Speed
     true_wind_angle: Angle
-    point_of_sail: SailTrim
+    sail_trim: Angle
+
+    def serialize_for_lora(self) -> str:
+        return (f"{self.heading.degrees}"
+                f"|{self.rudder_angle.degrees}"
+                f"|{self.position.serialize_for_lora()}"
+                f"|{self.speed.knots}"
+                f"|{self.true_wind_angle.degrees}"
+                f"|{self.sail_trim.degrees}")

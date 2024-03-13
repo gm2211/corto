@@ -1,4 +1,4 @@
-from api.objects.nav_params.sail_trim import SailTrim
+from api.objects.units.angle import Angle
 from boat.controls.servos_controller import ServosController
 
 
@@ -8,6 +8,6 @@ class SailController:
         self.servos_controller: ServosController = servo_controller
         self.SAIL_SERVO_ID = 0
 
-    def set_sail_trim(self, point_of_sail: SailTrim):
-        print(f"Setting sail trim {point_of_sail.name}")
-        self.servos_controller.set_servo(self.SAIL_SERVO_ID, point_of_sail.value)
+    def set_sail_trim(self, angle: Angle):
+        print(f"Setting sail trim to angle: {angle}")
+        self.servos_controller.set_servo(self.SAIL_SERVO_ID, angle)
