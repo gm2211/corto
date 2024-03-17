@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.12"
 pyformance = "^0.4"
 inventorhatmini = "^0.0.1"
+RPI.GPIO = "^0.7.0"
 
 
 [build-system]
