@@ -21,6 +21,13 @@ class ServosController:
     def set_servo_2(self, angle: int) -> None:
         self.__set_servo(self.servo_2, angle)
 
+    def reset_motor(self) -> None:
+        self.motor.disable()
+        self.motor.enable()
+        # Setting low but stable voltage to clear any potential motor lock
+        self.motor.speed(ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE - 0.01)
+        time.sleep(2)
+
     def set_motor_speed(self, speed: float) -> None:
         def to_motor_speed(user_speed: float):
             assert 0.0 <= user_speed <= 1.0, f"Speed must be between 0.0 and 1.0, not {user_speed}"
@@ -33,9 +40,6 @@ class ServosController:
         if speed == 0:
             self.motor.disable()
             return
-
-        self.motor.speed(0.03)  # Clearing voltage
-        time.sleep(2)
 
         motor_speed = to_motor_speed(speed)
         print(f"Setting motor speed to: {speed}, converted to: {motor_speed}")
