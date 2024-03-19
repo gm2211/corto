@@ -4,8 +4,6 @@ from inventorhatmini import InventorHATMini, SERVO_1, SERVO_2, SERVO_3, SERVO_4
 from ioexpander.common import NORMAL_DIR
 from ioexpander.servo import Servo
 
-from api.objects.units.angle import Angle
-
 
 class ServosController:
     MOTOR_MIN_SPEED_DUTY_CYCLE = 0.04
@@ -17,10 +15,10 @@ class ServosController:
         self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
         self.motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=50)
 
-    def set_servo_1(self, angle: Angle) -> None:
+    def set_servo_1(self, angle: int) -> None:
         self.__set_servo(self.servo_1, angle)
 
-    def set_servo_2(self, angle: Angle) -> None:
+    def set_servo_2(self, angle: int) -> None:
         self.__set_servo(self.servo_2, angle)
 
     def set_motor_speed(self, speed: float) -> None:
@@ -44,8 +42,9 @@ class ServosController:
         self.motor.speed(motor_speed)
 
     @staticmethod
-    def __set_servo(servo: Servo, angle: Angle) -> None:
-        portion = angle.degrees / 360
+    def __set_servo(servo: Servo, angle: int) -> None:
+        assert 0 <= angle <= 360, f"Angle must be between 0 and 360, not {angle}"
+        portion = angle / 360.0
         value = servo.min_value() + ((servo.max_value() - servo.min_value()) * portion)
         print(f"Setting servo {servo.pin} to {angle}")
         servo.value(value)
