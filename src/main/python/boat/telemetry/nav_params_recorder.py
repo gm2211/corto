@@ -11,7 +11,9 @@ class NavParamsRecorder:
         pass
 
     def record_sail_trim(self, angle: Angle) -> None:
-        trim = SailTrim.from_angle(angle)
+        pass
+
+    def record_motor_speed(self, speed) -> None:
         pass
 
     def get_cur_nav_params(self) -> NavParams:

@@ -3,8 +3,6 @@ from ..api.objects.units.gps_coord import GPSCoord
 from boat.comms.command_receiver import CommandReceiver
 from boat.comms.lora.boat_radio import BoatRadio
 from boat.controls.boat_attitude_controller import BoatAttitudeController
-from boat.controls.rudder_controller import RudderController
-from boat.controls.sail_controller import SailController
 from boat.controls.servos_controller import ServosController
 from boat.navigation.navigator import Navigator
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
@@ -32,11 +30,7 @@ class Corto:
 if __name__ == "__main__":
     nav_params_recorder = NavParamsRecorder()
     servos_controller = ServosController()
-    boat_controller = BoatAttitudeController(
-        RudderController(servos_controller),
-        SailController(servos_controller),
-        nav_params_recorder
-    )
+    boat_controller = BoatAttitudeController(servos_controller, nav_params_recorder)
     nav = Navigator(WindVane(), GPSLocator(), nav_params_recorder)
     radio = BoatRadio()
     cmd_receiver = CommandReceiver(radio, boat_controller, nav_params_recorder)

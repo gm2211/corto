@@ -1,53 +1,51 @@
-from inventorhatmini import InventorHATMini
+import time
+
+from inventorhatmini import InventorHATMini, SERVO_1, SERVO_2, SERVO_3, SERVO_4
+from ioexpander.common import NORMAL_DIR
+from ioexpander.servo import Servo
 
 from api.objects.units.angle import Angle
 
 
 class ServosController:
+    MOTOR_MIN_SPEED_DUTY_CYCLE = 0.04
+    MOTOR_MAX_SPEED_DUTY_CYCLE = 0.1
 
     def __init__(self):
-        self.board = InventorHATMini(init_leds=False)
+        self.board = InventorHATMini(init_servos=False, init_leds=False)
+        self.servo_1 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_1])
+        self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
+        self.motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=50)
 
-    def set_servo(self, servo_id: int, angle: Angle):
+    def set_servo_1(self, angle: Angle) -> None:
+        self.__set_servo(self.servo_1, angle)
+
+    def set_servo_2(self, angle: Angle) -> None:
+        self.__set_servo(self.servo_2, angle)
+
+    def set_motor_speed(self, speed: float) -> None:
+        def to_motor_speed(user_speed: float):
+            assert 0.0 <= user_speed <= 1.0, f"Speed must be between 0.0 and 1.0, not {user_speed}"
+
+            return ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE + (
+                    user_speed *
+                    (ServosController.MOTOR_MAX_SPEED_DUTY_CYCLE - ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE)
+            )
+
+        if speed == 0:
+            self.motor.disable()
+            return
+
+        self.motor.speed(0.03)  # Clearing voltage
+        time.sleep(2)
+
+        motor_speed = to_motor_speed(speed)
+        print(f"Setting motor speed to: {speed}, converted to: {motor_speed}")
+        self.motor.speed(motor_speed)
+
+    @staticmethod
+    def __set_servo(servo: Servo, angle: Angle) -> None:
         portion = angle.degrees / 360
-        servo = self.board.servos[servo_id]
-        value = (servo.max_value() - servo.min_value()) * portion
-        print("Setting servo", servo_id, "to", angle)
+        value = servo.min_value() + ((servo.max_value() - servo.min_value()) * portion)
+        print(f"Setting servo {servo.pin} to {angle}")
         servo.value(value)
-
-    # TODO: the code below works but needs to be reworked to make this method more useful
-    def set_pwm(self):
-        import time, sys
-        import RPi.GPIO as GPIO
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BOARD)
-
-        GPIO.setup(7, GPIO.OUT)
-
-        p = GPIO.PWM(7, 50)
-
-        p.start(0)
-        p.ChangeDutyCycle(3)
-        print("Starting, will hear beeps")
-        time.sleep(5)
-
-        while True:
-            try:
-                i = 4
-                while i < 10:
-                    print(i)
-                    p.ChangeDutyCycle(i)
-                    time.sleep(.05)
-                    i += .02
-                while i > 4:
-                    print(i)
-                    p.ChangeDutyCycle(i)
-                    time.sleep(.05)
-                    i -= .05
-            except KeyboardInterrupt:
-                print("Stopping..")
-                p.ChangeDutyCycle(0)
-                time.sleep(5)
-                p.stop()
-                time.sleep(1)
-                sys.exit(0)
