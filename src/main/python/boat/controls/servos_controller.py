@@ -7,14 +7,14 @@ from ioexpander.motor import Motor
 
 
 class ServosController:
-    MOTOR_MIN_SPEED_DUTY_CYCLE = 0.052
-    MOTOR_MAX_SPEED_DUTY_CYCLE = 0.1
+    MOTOR_MIN_SPEED_DUTY_CYCLE = 0.06
+    MOTOR_MAX_SPEED_DUTY_CYCLE = 0.108
 
     def __init__(self):
         self.board = InventorHATMini(init_servos=False, init_leds=False)
         self.servo_1 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_1])
         self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
-        self.motor: Motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=50)
+        self.motor: Motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=60)
 
     def set_servo_1(self, angle: int) -> None:
         self.__set_servo(self.servo_1, angle)
@@ -27,10 +27,10 @@ class ServosController:
         self.motor.disable()
         print("Enabling motor..")
         self.motor.enable()
+        time.sleep(2)
         print("Setting motor speed to minimum..")
-        speed = ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE - 0.01
-        self.motor.speed(speed)
-        time.sleep(10)
+        self.motor.speed(ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE)
+        time.sleep(8)
 
     def set_motor_speed(self, speed: float) -> None:
         def to_motor_speed(user_speed: float):
