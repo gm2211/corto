@@ -7,7 +7,7 @@ from ioexpander.motor import Motor
 
 
 class ServosController:
-    MOTOR_MIN_SPEED_DUTY_CYCLE = 0.04
+    MOTOR_MIN_SPEED_DUTY_CYCLE = 0 #0.04
     MOTOR_MAX_SPEED_DUTY_CYCLE = 0.1
 
     def __init__(self):
@@ -26,12 +26,14 @@ class ServosController:
         print("Disabling motor")
         self.motor.disable()
         time.sleep(2)
+        self.motor.speed(1.0)
         print("Re-enabling motor")
         self.motor.enable()
-        self.motor.coast()
-        time.sleep(2)
-        speed = ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE - 0.01
-        print(f"Setting low but stable duty cycle '{speed}' to clear any potential motor lock")
+        print("Calibrating max speed..")
+        self.motor.speed(1.0)
+        time.sleep(5)
+        print("Calibrating min speed..")
+        speed = ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE #- 0.01
         self.motor.speed(speed)
 
     def set_motor_speed(self, speed: float) -> None:
