@@ -27,6 +27,7 @@ class ServosController:
         self.motor.disable()
         time.sleep(2)
         self.motor.speed(1.0)
+        time.sleep(15)
         print("Re-enabling motor")
         self.motor.enable()
         print("Calibrating max speed..")
