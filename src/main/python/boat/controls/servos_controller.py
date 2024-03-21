@@ -8,7 +8,7 @@ from ioexpander.motor import Motor
 
 class ServosController:
     MOTOR_MIN_SPEED_DUTY_CYCLE = 0.06
-    MOTOR_MAX_SPEED_DUTY_CYCLE = 0.108
+    MOTOR_MAX_SPEED_DUTY_CYCLE = 0.12
 
     def __init__(self):
         self.board = InventorHATMini(init_servos=False, init_leds=False)
