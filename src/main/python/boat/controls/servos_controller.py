@@ -3,6 +3,7 @@ import time
 from inventorhatmini import InventorHATMini, SERVO_1, SERVO_2, SERVO_3, SERVO_4
 from ioexpander.common import NORMAL_DIR
 from ioexpander.servo import Servo
+from ioexpander.motor import Motor
 
 
 class ServosController:
@@ -13,7 +14,7 @@ class ServosController:
         self.board = InventorHATMini(init_servos=False, init_leds=False)
         self.servo_1 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_1])
         self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
-        self.motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=50)
+        self.motor: Motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=50)
 
     def set_servo_1(self, angle: int) -> None:
         self.__set_servo(self.servo_1, angle)
@@ -24,14 +25,14 @@ class ServosController:
     def reset_motor(self) -> None:
         print("Disabling motor")
         self.motor.disable()
-        time.sleep(5)
+        time.sleep(2)
         print("Re-enabling motor")
         self.motor.enable()
-        time.sleep(5)
+        self.motor.coast()
+        time.sleep(2)
         speed = ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE - 0.01
         print(f"Setting low but stable duty cycle '{speed}' to clear any potential motor lock")
         self.motor.speed(speed)
-        time.sleep(10)
 
     def set_motor_speed(self, speed: float) -> None:
         def to_motor_speed(user_speed: float):
