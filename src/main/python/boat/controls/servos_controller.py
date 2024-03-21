@@ -7,7 +7,7 @@ from ioexpander.motor import Motor
 
 
 class ServosController:
-    MOTOR_MIN_SPEED_DUTY_CYCLE = 0.04
+    MOTOR_MIN_SPEED_DUTY_CYCLE = 0.052
     MOTOR_MAX_SPEED_DUTY_CYCLE = 0.1
 
     def __init__(self):
