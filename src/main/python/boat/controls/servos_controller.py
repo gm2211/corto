@@ -24,14 +24,14 @@ class ServosController:
     def reset_motor(self) -> None:
         print("Disabling motor")
         self.motor.disable()
-        time.sleep(2)
+        time.sleep(5)
         print("Re-enabling motor")
         self.motor.enable()
-        time.sleep(2)
+        time.sleep(5)
         speed = ServosController.MOTOR_MIN_SPEED_DUTY_CYCLE - 0.01
         print(f"Setting low but stable duty cycle '{speed}' to clear any potential motor lock")
         self.motor.speed(speed)
-        time.sleep(5)
+        time.sleep(10)
 
     def set_motor_speed(self, speed: float) -> None:
         def to_motor_speed(user_speed: float):
