@@ -1,5 +1,5 @@
-from ..api.objects.nav_params.boat_attitude import BoatAttitude
-from ..api.objects.units.gps_coord import GPSCoord
+from api.objects.nav_params.boat_attitude import BoatAttitude
+from api.objects.units.gps_coord import GPSCoord
 from boat.comms.command_receiver import CommandReceiver
 from boat.comms.lora.boat_radio import BoatRadio
 from boat.controls.boat_attitude_controller import BoatAttitudeController
