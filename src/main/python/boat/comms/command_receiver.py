@@ -1,6 +1,5 @@
-from api import SetDestination
-
 from api.objects.commands.send_telemetry import SendTelemetry
+from api.objects.commands.set_destination import SetDestination
 from api.objects.commands.set_sail import SetSail
 from api.objects.commands.turn_rudder import TurnRudder
 from api.objects.units.gps_coord import GPSCoord
@@ -20,23 +19,36 @@ class CommandReceiver:
         self.boat_controller: BoatAttitudeController = boat_controller
         self.nav_params_recorder = nav_params_recorder
 
-        radio.register_callback(self.receive_command)
+    @staticmethod
+    def create_and_register(
+            radio: BoatRadio,
+            boat_controller: BoatAttitudeController,
+            nav_params_recorder: NavParamsRecorder):
+        receiver = CommandReceiver(radio, boat_controller, nav_params_recorder)
+        radio.register_callback(receiver.__receive_command)
+        return receiver
 
     def get_cur_destination(self) -> GPSCoord:
         return self.cur_dest
 
-    def receive_command(self, command: str) -> None:
+    def __receive_command(self, command: str) -> None:
+        print(f"Received command: {command}")
+
         if SetSail.can_parse_lora_data(command):
             set_sail = SetSail.deserialize_from_lora(command)
             self.boat_controller.set_sail_trim(set_sail.angle)
-        elif TurnRudder.can_parse_lora_data(command):
+            return None
+        if TurnRudder.can_parse_lora_data(command):
             set_rudder = TurnRudder.deserialize_from_lora(command)
             self.boat_controller.set_rudder_angle(set_rudder.angle)
-        elif SendTelemetry.can_parse_lora_data(command):
+            return None
+        if SendTelemetry.can_parse_lora_data(command):
             serialized_telemetry = self.nav_params_recorder.get_cur_nav_params().serialize_for_lora()
             self.radio.send(serialized_telemetry)
             SendTelemetry()
-        elif SetDestination.can_parse_lora_data(command):
+            return None
+        if SetDestination.can_parse_lora_data(command):
             set_dest = SetDestination.deserialize_from_lora(command)
-            self.cur_dest = set_dest.position
-        return None
+            self.cur_dest = set_dest.destination
+            return None
+        print(f"Command was unknown: {command}")

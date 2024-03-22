@@ -35,27 +35,26 @@ class BoatRadio:
         self.radio.send(bytes("setup", UTF_8), keep_listening=True)
 
     def register_callback(self, callback):
-        def packet_received_callback(_ignore):
+        def packet_received_callback():
             # Check to see if this was a "receive" interrupt - ignore "transmit" interrupts
             if not self.radio.rx_done:
                 return None
 
             packet = self.radio.receive(timeout=None)
 
-            if packet is not None:
-                decoded = packet.decode(UTF_8)
-                self.display.text("Received: {}".format(decoded), 0, 0, 1)
-                self.display.show()
-                callback(packet)
+            if packet is None:
+                return None
+
+            packet_content = packet.decode(UTF_8)
+            self.show_on_display(f"Received: {packet_content}")
+            callback(packet_content)
 
         gpio.add_event_callback(self.INTERRUPT_PIN, packet_received_callback)
 
     def send(self, message):
         self.radio.send(bytes(message, UTF_8))
-        lora.show_msg(self.display, "Sent: {}".format(message))
+        lora.show_msg(self.display, f"Sent: {message}")
 
-
-boat_receiver = BoatRadio()
-
-while True:
-    time.sleep(0.1)
+    def show_on_display(self, message):
+        self.display.text(message, 0, 0, 1)
+        self.display.show()

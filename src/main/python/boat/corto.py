@@ -33,7 +33,7 @@ if __name__ == "__main__":
     boat_controller = BoatAttitudeController(servos_controller, nav_params_recorder)
     nav = Navigator(WindVane(), GPSLocator(), nav_params_recorder)
     radio = BoatRadio()
-    cmd_receiver = CommandReceiver(radio, boat_controller, nav_params_recorder)
+    cmd_receiver = CommandReceiver.create_and_register(radio, boat_controller, nav_params_recorder)
 
     corto = Corto(boat_controller, nav, cmd_receiver)
 
