@@ -12,11 +12,20 @@ class TurnRudder(NamedTuple):
 
     @staticmethod
     def can_parse_lora_data(data: str) -> bool:
-        return data.startswith(TurnRudder.CMD_STRING) and data[1:].isdigit()
+        has_cmd_prefix = data.startswith(TurnRudder.CMD_STRING)
+        can_parse_num = TurnRudder.__parse_num(data) is not None
+        return has_cmd_prefix and can_parse_num
 
     @staticmethod
     def deserialize_from_lora(data: str) -> 'TurnRudder':
         if not TurnRudder.can_parse_lora_data(data):
             raise ValueError(f"Invalid data for TurnRudder: {data}")
-        degrees = float(data[1:])
+        degrees = TurnRudder.__parse_num(data)
         return TurnRudder(Angle(degrees))
+
+    @staticmethod
+    def __parse_num(data: str) -> float | None:
+        try:
+            return float(data[1:])
+        except ValueError:
+            return None

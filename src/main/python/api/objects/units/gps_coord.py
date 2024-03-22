@@ -16,7 +16,7 @@ class GPSCoord(NamedTuple):
             return False
 
     @staticmethod
-    def deserialize_from_lora(param: str):
+    def deserialize_from_lora(param: str) -> 'GPSCoord':
         lat, lon = param.split(',')
         lat_in_range = lat in range(-90, 91)
         lon_in_range = lon in range(-180, 181)
