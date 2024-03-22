@@ -1,6 +1,5 @@
 import board
 import busio
-import keyboard as k
 
 from api.objects.commands.set_sail import SetSail
 from api.objects.commands.turn_rudder import TurnRudder
@@ -9,10 +8,6 @@ from lora.radio import Radio
 
 
 class BoatRemote:
-    LEFT = "left"
-    RIGHT = "right"
-    UP = "up"
-    DOWN = "down"
     TX_POWER = 23
 
     def __init__(self, radio: Radio):
@@ -24,20 +19,27 @@ class BoatRemote:
         sail = 0
 
         while True:
-            if k.is_pressed(BoatRemote.LEFT):
-                rudder -= 1
-                rudder = max(-100, rudder)
+            command = input("Command: ")
+            if command == "l":
+                self.radio.clear_display()
+                self.radio.show_on_display("left")
+                rudder = max(-100, rudder - 1)
                 self.__send_rudder(rudder)
-            elif k.is_pressed(BoatRemote.RIGHT):
-                rudder += 1
-                rudder = min(100, rudder)
+            elif command == "r":
+                self.radio.clear_display()
+                self.radio.show_on_display("right")
+                rudder = min(100, rudder + 1)
                 self.__send_rudder(rudder)
-            elif k.is_pressed(BoatRemote.UP):
+            elif command == "u":
+                self.radio.clear_display()
+                self.radio.show_on_display("up")
                 rudder = 0
                 sail += 1
                 sail = min(100, sail)
                 self.__send_sail(sail)
-            elif k.is_pressed(BoatRemote.DOWN):
+            elif command == "d":
+                self.radio.clear_display()
+                self.radio.show_on_display("dwon")
                 rudder = 0
                 sail -= 1
                 sail = max(-100, sail)

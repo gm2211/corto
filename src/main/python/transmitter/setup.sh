@@ -1,3 +1,4 @@
+#!/usr/bin/bash --
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 sudo apt-get update
@@ -14,6 +15,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 pip3 install --upgrade adafruit-blinka
 python3 -m pip install inventorhatmini
 sudo raspi-config nonint do_i2c 0
+pip3 install keyboard
 pip3 install adafruit-circuitpython-busdevice
 pip3 install adafruit-circuitpython-ssd1306
 pip3 install adafruit-circuitpython-rfm9x
