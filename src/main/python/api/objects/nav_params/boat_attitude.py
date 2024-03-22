@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from boat.controls.sail_controller import SailTrim
+from api.objects.nav_params.sail_trim import SailTrim
 from api.objects.units.angle import Angle
 
 
