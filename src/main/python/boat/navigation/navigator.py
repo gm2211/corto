@@ -1,12 +1,11 @@
 import math
 
-from boat.controls.sail_controller import SailTrim
-from api.objects.units.angle import Angle
 from api.objects.nav_params.boat_attitude import BoatAttitude
+from api.objects.nav_params.nav_params import NavParams
+from api.objects.units.angle import Angle
 from api.objects.units.gps_coord import GPSCoord
-from api.objects.nav_params import NavParams
-from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
+from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.sensors.wind_vane import WindVane
 
 
@@ -21,7 +20,7 @@ class Navigator:
         nav_params: NavParams = self.nav_params_recorder.get_cur_nav_params()
         cur_heading: Angle = nav_params.heading
         desired_heading: Angle = self.__bearing_to(cur_pos, dest)
-        sail_trim: SailTrim = SailTrim.from_angle(self.__angle_diff(cur_heading, self.wind_vane.get_true_wind()))
+        sail_trim: Angle = self.__angle_diff(cur_heading, self.wind_vane.get_true_wind())
         return BoatAttitude(desired_heading, sail_trim)
 
     # Calculate bearing to destination
