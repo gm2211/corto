@@ -46,10 +46,10 @@ class BoatRemote:
                 self.__send_sail(sail)
 
     def __send_rudder(self, rudder):
-        self.radio.send(TurnRudder(Angle(rudder)))
+        self.radio.send(TurnRudder(Angle(rudder)).serialize_for_lora())
 
     def __send_sail(self, sail):
-        self.radio.send(SetSail(Angle(sail)))
+        self.radio.send(SetSail(Angle(sail)).serialize_for_lora())
 
 
 if __name__ == "__main__":

@@ -45,7 +45,7 @@ class Radio:
 
         gpio.add_event_callback(self.INTERRUPT_PIN, packet_received_callback)
 
-    def send(self, message):
+    def send(self, message: str):
         self.radio.send(bytes(message, UTF_8))
         self.show_on_display(f"Sent: {message}")
 
