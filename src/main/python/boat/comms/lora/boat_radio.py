@@ -34,7 +34,7 @@ class BoatRadio:
         self.radio.send(bytes("setup", UTF_8), keep_listening=True)
 
     def register_callback(self, callback):
-        def packet_received_callback():
+        def packet_received_callback(_ignored):
             # Check to see if this was a "receive" interrupt - ignore "transmit" interrupts
             if not self.radio.rx_done:
                 return None
