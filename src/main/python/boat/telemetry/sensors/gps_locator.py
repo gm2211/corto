@@ -5,13 +5,14 @@ from api.objects.units.knots import Knots
 
 class GPSLocator:
     def __init__(self):
-        pass
+        self.cur_location = GPSCoord(0, 0)
+        self.cur_heading = Angle(0.0)
 
     def cur_location(self) -> GPSCoord:
-        return GPSCoord(0, 0)
+        return self.cur_location
 
     def cur_heading(self) -> Angle:
-        return Angle(0.0)
+        return self.cur_heading
 
     def cur_speed_over_ground(self) -> Knots:
         pass

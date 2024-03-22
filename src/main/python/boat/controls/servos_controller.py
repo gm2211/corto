@@ -5,6 +5,8 @@ from ioexpander.common import NORMAL_DIR
 from ioexpander.servo import Servo
 from ioexpander.motor import Motor
 
+from api.objects.units.angle import Angle
+
 
 class ServosController:
     MOTOR_MIN_SPEED_DUTY_CYCLE = 0.06
@@ -16,11 +18,11 @@ class ServosController:
         self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
         self.motor: Motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=60)
 
-    def set_servo_1(self, angle: int) -> None:
-        self.__set_servo(self.servo_1, angle)
+    def set_servo_1(self, angle: Angle) -> None:
+        self.__set_servo(self.servo_1, angle.degrees)
 
-    def set_servo_2(self, angle: int) -> None:
-        self.__set_servo(self.servo_2, angle)
+    def set_servo_2(self, angle: Angle) -> None:
+        self.__set_servo(self.servo_2, angle.degrees)
 
     def reset_motor(self) -> None:
         print("Disabling motor..")
@@ -50,7 +52,7 @@ class ServosController:
         self.motor.speed(motor_speed)
 
     @staticmethod
-    def __set_servo(servo: Servo, angle: int) -> None:
+    def __set_servo(servo: Servo, angle: float) -> None:
         assert 0 <= angle <= 360, f"Angle must be between 0 and 360, not {angle}"
         portion = angle / 360.0
         value = servo.min_value() + ((servo.max_value() - servo.min_value()) * portion)

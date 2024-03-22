@@ -3,8 +3,8 @@ from api.objects.units.knots import Knots
 
 class SpeedOverWaterSensor:
     def __init__(self):
-        pass
+        self.cur_speed = Knots(0)
 
     def cur_speed(self) -> Knots:
-        return Knots(0)
+        return self.cur_speed
 
