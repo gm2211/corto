@@ -6,7 +6,7 @@ authors = ["gm2211 <gmecocci@outlook.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.9"
 pyformance = "^0.4"
 inventorhatmini = "^0.0.1"
 pimoroni-ioexpander = "^0.0.5"
