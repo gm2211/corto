@@ -24,10 +24,9 @@ class Radio:
         self.radio.tx_power = 23  # 23 is the maximum power
         self.interrupt_initialized = False
 
-        # Send a packet just to be able to keep listening
-        self.radio.send(bytes("setup", UTF_8), keep_listening=True)
-
     def register_callback(self, callback):
+        import RPi.GPIO as gpio
+
         self.__init_interrupt_if_not_initd()
 
         def packet_received_callback(_ignored):
@@ -67,4 +66,8 @@ class Radio:
         gpio.setmode(gpio.BCM)
         gpio.setup(self.INTERRUPT_PIN, gpio.IN, pull_up_down=gpio.PUD_DOWN)  # activate input
         gpio.add_event_detect(self.INTERRUPT_PIN, gpio.RISING)
+
+        # Send a packet just to be able to keep listening
+        self.radio.send(bytes("setup", UTF_8), keep_listening=True)
+
         self.interrupt_initialized = True
