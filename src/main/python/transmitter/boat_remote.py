@@ -1,10 +1,11 @@
-import adafruit_ssd1306
 import board
 import busio
-from digitalio import DigitalInOut
 import keyboard as k
 
-from boat.comms.lora.boat_radio import BoatRadio
+from api.objects.commands.set_sail import SetSail
+from api.objects.commands.turn_rudder import TurnRudder
+from api.objects.units.angle import Angle
+from lora.radio import Radio
 
 
 class BoatRemote:
@@ -12,41 +13,44 @@ class BoatRemote:
     RIGHT = "right"
     UP = "up"
     DOWN = "down"
-    CS = DigitalInOut(board.CE1)
-    RESET = DigitalInOut(board.D25)
     TX_POWER = 23
 
-    def __init__(self, boat_radio: BoatRadio):
+    def __init__(self, radio: Radio):
         self.i2c = busio.I2C(board.SCL, board.SDA)
-        self.display = adafruit_ssd1306.SSD1306_I2C(128, 32, self.i2c, reset=DigitalInOut(board.D4))
-        self.boar_radio: BoatRadio = boat_radio
+        self.radio: Radio = radio
+
+    def run_loop(self) -> None:
+        rudder = 0
+        sail = 0
+
+        while True:
+            if k.is_pressed(BoatRemote.LEFT):
+                rudder -= 1
+                rudder = max(-100, rudder)
+                self.__send_rudder(rudder)
+            elif k.is_pressed(BoatRemote.RIGHT):
+                rudder += 1
+                rudder = min(100, rudder)
+                self.__send_rudder(rudder)
+            elif k.is_pressed(BoatRemote.UP):
+                rudder = 0
+                sail += 1
+                sail = min(100, sail)
+                self.__send_sail(sail)
+            elif k.is_pressed(BoatRemote.DOWN):
+                rudder = 0
+                sail -= 1
+                sail = max(-100, sail)
+                self.__send_sail(sail)
+
+    def __send_rudder(self, rudder):
+        self.radio.send(TurnRudder(Angle(rudder)))
+
+    def __send_sail(self, sail):
+        self.radio.send(SetSail(Angle(sail)))
 
 
-def clear_display(self) -> None:
-    self.display.fill(0)
-    self.display.show()
+if __name__ == "__main__":
+    remote = BoatRemote(Radio())
 
-
-def run_loop(self) -> None:
-    rudder = 0
-    sail = 0
-
-    while True:
-        if k.is_pressed(BoatRemote.LEFT):
-            rudder -= 1
-            rudder = max(-100, rudder)
-            self.boar_radio.send_rudder(rudder)
-        elif k.is_pressed(BoatRemote.RIGHT):
-            rudder += 1
-            rudder = min(100, rudder)
-            self.boar_radio.send_rudder(rudder)
-        elif k.is_pressed(BoatRemote.UP):
-            rudder = 0
-            sail += 1
-            sail = min(100, sail)
-            self.boar_radio.send_sail(sail)
-        elif k.is_pressed(BoatRemote.DOWN):
-            rudder = 0
-            sail -= 1
-            sail = max(-100, sail)
-            self.boar_radio.send_sail(sail)
+    remote.run_loop()

@@ -3,7 +3,7 @@ from api.objects.commands.set_destination import SetDestination
 from api.objects.commands.set_sail import SetSail
 from api.objects.commands.turn_rudder import TurnRudder
 from api.objects.units.gps_coord import GPSCoord
-from boat.comms.lora.boat_radio import BoatRadio
+from lora.radio import Radio
 from boat.controls.boat_attitude_controller import BoatAttitudeController
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
 
@@ -11,17 +11,17 @@ from boat.telemetry.nav_params_recorder import NavParamsRecorder
 class CommandReceiver:
     def __init__(
             self,
-            radio: BoatRadio,
+            radio: Radio,
             boat_controller: BoatAttitudeController,
             nav_params_recorder: NavParamsRecorder):
-        self.radio: BoatRadio = radio
+        self.radio: Radio = radio
         self.cur_dest: GPSCoord = GPSCoord(0, 0)
         self.boat_controller: BoatAttitudeController = boat_controller
         self.nav_params_recorder = nav_params_recorder
 
     @staticmethod
     def create_and_register(
-            radio: BoatRadio,
+            radio: Radio,
             boat_controller: BoatAttitudeController,
             nav_params_recorder: NavParamsRecorder):
         receiver = CommandReceiver(radio, boat_controller, nav_params_recorder)
