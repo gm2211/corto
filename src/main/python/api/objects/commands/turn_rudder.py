@@ -26,6 +26,6 @@ class TurnRudder(NamedTuple):
     @staticmethod
     def __parse_num(data: str) -> float | None:
         try:
-            return float(data[1:])
+            return float(data[len(TurnRudder.CMD_STRING):])
         except ValueError:
             return None

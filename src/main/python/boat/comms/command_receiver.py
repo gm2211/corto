@@ -1,6 +1,7 @@
 from api.objects.commands.send_telemetry import SendTelemetry
 from api.objects.commands.set_destination import SetDestination
 from api.objects.commands.set_sail import SetSail
+from api.objects.commands.set_throttle import SetThrottle
 from api.objects.commands.turn_rudder import TurnRudder
 from api.objects.units.gps_coord import GPSCoord
 from lora.radio import Radio
@@ -50,5 +51,9 @@ class CommandReceiver:
         if SetDestination.can_parse_lora_data(command):
             set_dest = SetDestination.deserialize_from_lora(command)
             self.cur_dest = set_dest.destination
+            return None
+        if SetThrottle.can_parse_lora_data(command):
+            set_throttle = SetThrottle.deserialize_from_lora(command)
+            self.boat_controller.set_motor_throttle(set_throttle.throttle / 100.0)
             return None
         print(f"Command was unknown: {command}")

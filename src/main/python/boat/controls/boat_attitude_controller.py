@@ -28,6 +28,6 @@ class BoatAttitudeController:
         self.servos_controller.set_servo_2(angle)
         self.nav_params_recorder.record_rudder_angle(angle)
 
-    def set_motor_speed(self, speed: float):
+    def set_motor_throttle(self, speed: float):
         self.servos_controller.set_motor_speed(speed)
         self.nav_params_recorder.record_motor_speed(speed)

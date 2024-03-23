@@ -18,4 +18,4 @@ class SetDestination(NamedTuple):
     def deserialize_from_lora(data: str) -> 'SetDestination':
         if not SetDestination.can_parse_lora_data(data):
             raise ValueError(f"Invalid data for SetDestination: {data}")
-        return SetDestination(GPSCoord.deserialize_from_lora(data[1:]))
+        return SetDestination(GPSCoord.deserialize_from_lora(data[len(SetDestination.CMD_STRING):]))
