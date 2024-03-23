@@ -17,6 +17,7 @@ class ServosController:
         self.servo_1 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_1])
         self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
         self.motor: Motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=60)
+        self.motor.disable()
 
     def set_servo_1(self, angle: Angle) -> None:
         self.__set_servo(self.servo_1, angle.degrees)
@@ -48,6 +49,7 @@ class ServosController:
             return
 
         if not self.motor.is_enabled():
+            print("Motor not enabled - resetting")
             self.reset_motor()
 
         motor_speed = to_motor_speed(speed)
