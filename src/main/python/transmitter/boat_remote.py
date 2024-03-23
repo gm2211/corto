@@ -23,26 +23,26 @@ class BoatRemote:
             if command == "l":
                 self.radio.clear_display()
                 self.radio.show_on_display("left")
-                rudder = max(-100, rudder - 1)
+                rudder = max(-100, rudder - 1) % 360
                 self.__send_rudder(rudder)
             elif command == "r":
                 self.radio.clear_display()
                 self.radio.show_on_display("right")
-                rudder = min(100, rudder + 1)
+                rudder = min(100, rudder + 1) % 360
                 self.__send_rudder(rudder)
             elif command == "u":
                 self.radio.clear_display()
                 self.radio.show_on_display("up")
                 rudder = 0
                 sail += 1
-                sail = min(100, sail)
+                sail = min(100, sail) % 360
                 self.__send_sail(sail)
             elif command == "d":
                 self.radio.clear_display()
                 self.radio.show_on_display("dwon")
                 rudder = 0
                 sail -= 1
-                sail = max(-100, sail)
+                sail = max(-100, sail) % 360
                 self.__send_sail(sail)
 
     def __send_rudder(self, rudder):
