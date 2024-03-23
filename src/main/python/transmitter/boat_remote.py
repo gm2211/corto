@@ -23,20 +23,20 @@ class BoatRemote:
         while True:
             command = input("Command: ")
             if command == "l":
-                rudder = max(-100, rudder - 1)
+                rudder = max(-100, rudder - 1) % 360
                 self.__show(f"left {rudder}")
                 self.__send_rudder(rudder)
             elif command == "r":
-                rudder = min(100, rudder + 1)
+                rudder = min(100, rudder + 1) % 360
                 self.__show(f"right {rudder}")
                 self.__send_rudder(rudder)
             elif command == "u":
                 rudder = 0
-                sail = min(100, sail + 1)
+                sail = min(100, sail + 1) % 360
                 self.__show(f"up {sail}")
                 self.__send_sail(sail)
             elif command == "d":
-                sail = max(-100, sail - 1)
+                sail = max(-100, sail - 1) % 360
                 self.__show(f"down {sail}")
                 self.__send_sail(sail)
             elif command == "w":
