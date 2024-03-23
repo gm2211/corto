@@ -47,6 +47,9 @@ class ServosController:
             self.motor.disable()
             return
 
+        if not self.motor.is_enabled():
+            self.reset_motor()
+
         motor_speed = to_motor_speed(speed)
         print(f"Setting motor speed to: {speed}, converted to: {motor_speed}")
         self.motor.speed(motor_speed)
