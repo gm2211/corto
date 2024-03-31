@@ -11,7 +11,7 @@ class ServosController:
     MOTOR_MIN_SPEED_DUTY_CYCLE = 0.06
     MOTOR_MAX_SPEED_DUTY_CYCLE = 0.12
     # We need to do it this way and not calibrate, or else we overshoot boat physical limits
-    SERVO_1_RANGE = (-60, 10, 45)  # Usually sail
+    SERVO_1_RANGE = (-60, -2, 45)  # Usually sail
     SERVO_2_RANGE = (-45, 1, 45)  # Usually rudder
 
     def __init__(self):
