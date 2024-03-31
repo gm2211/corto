@@ -32,3 +32,9 @@ class BoatAttitudeController:
     def set_motor_throttle(self, throttle: Percent):
         self.servos_controller.set_motor_throttle(throttle)
         self.nav_params_recorder.record_motor_throttle(throttle)
+
+
+if __name__ == "__main__":
+    b = BoatAttitudeController(ServosController(), NavParamsRecorder())
+
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(100)), Percent(0)))
