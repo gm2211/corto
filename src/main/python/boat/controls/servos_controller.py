@@ -36,7 +36,7 @@ class ServosController:
     def reset_servo_2(self) -> None:
         zero = self.SERVO_2_RANGE[1]
         print(f"Resetting servo 2 to zero value of: {zero}")
-        for i in range(100):
+        for i in range(500):
             self.servo_2.value(zero)
 
     def reset_servos(self) -> None:
