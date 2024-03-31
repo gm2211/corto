@@ -28,12 +28,16 @@ class ServosController:
         self.__set_servo(self.servo_2, self.SERVO_2_RANGE, percent.value)
 
     def reset_servo_1(self) -> None:
+        zero = self.SERVO_1_RANGE[1]
+        print(f"Resetting servo 1 to zero value of: {zero}")
         for i in range(100):
-            self.servo_1.value(self.SERVO_1_RANGE[1])
+            self.servo_1.value(zero)
 
     def reset_servo_2(self) -> None:
+        zero = self.SERVO_2_RANGE[1]
+        print(f"Resetting servo 2 to zero value of: {zero}")
         for i in range(100):
-            self.servo_2.value(self.SERVO_2_RANGE[1])
+            self.servo_2.value(zero)
 
     def reset_servos(self) -> None:
         self.reset_servo_1()
