@@ -24,7 +24,7 @@ class TurnRudder(NamedTuple):
         return TurnRudder(Angle(degrees))
 
     @staticmethod
-    def __parse_num(data: str) -> float | None:
+    def __parse_num(data: str):# -> float | None:
         try:
             return float(data[len(TurnRudder.CMD_STRING):])
         except ValueError:

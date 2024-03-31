@@ -23,7 +23,7 @@ class SetThrottle(NamedTuple):
         return SetThrottle(throttle_percent)
 
     @staticmethod
-    def __parse_num(data: str) -> int | None:
+    def __parse_num(data: str):# -> int | None:
         try:
             return int(data[len(SetThrottle.CMD_STRING):])
         except ValueError:

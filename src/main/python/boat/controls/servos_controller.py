@@ -5,8 +5,6 @@ from ioexpander.common import NORMAL_DIR
 from ioexpander.servo import Servo
 from ioexpander.motor import Motor
 
-from api.objects.units.angle import Angle
-
 
 class ServosController:
     MOTOR_MIN_SPEED_DUTY_CYCLE = 0.06
@@ -16,14 +14,21 @@ class ServosController:
         self.board = InventorHATMini(init_servos=False, init_leds=False)
         self.servo_1 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_1])
         self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
+        self.servo_1_range = (-60, 45) # We need to do it this way and not calibrate, or else we overshoot boat physical limits
+        self.servo_2_range = (-45, 45) # We need to do it this way and not calibrate, or else we overshoot boat physical limits 
         self.motor: Motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=60)
         self.motor.disable()
 
-    def set_servo_1(self, angle: Angle) -> None:
-        self.__set_servo(self.servo_1, angle.degrees)
+    def set_servo_1(self, percent: int) -> None:
+        self.__set_servo(self.servo_1, self.servo_1_range, percent)
 
-    def set_servo_2(self, angle: Angle) -> None:
-        self.__set_servo(self.servo_2, angle.degrees)
+    def set_servo_2(self, percent: int) -> None:
+        self.__set_servo(self.servo_2, self.servo_2_range, percent)
+
+    def reset_servos(self, zero=1) -> None:
+        for i in range(100):
+            self.servo_1.value(zero)
+            self.servo_2.value(zero)
 
     def reset_motor(self) -> None:
         print("Disabling motor..")
@@ -56,10 +61,41 @@ class ServosController:
         print(f"Setting motor speed to: {speed}, converted to: {motor_speed}")
         self.motor.speed(motor_speed)
 
-    @staticmethod
-    def __set_servo(servo: Servo, angle: float) -> None:
-        assert 0 <= angle <= 360, f"Angle must be between 0 and 360, not {angle}"
-        portion = angle / 360.0
-        value = servo.min_value() + ((servo.max_value() - servo.min_value()) * portion)
-        print(f"Setting servo {servo.pin} to {angle}")
-        servo.value(value)
+    def set_servo(self, servo: Servo, servo_range: (int, int), percent: int) -> None:
+        assert 0 <= percent <= 100, f"Angle must be between 0 and 100, not {percent}"
+        print(f"Setting servo {servo.pin} to {percent}")
+        servo.to_percent(
+          percent, 
+          in_min=0, 
+          in_max=100, 
+          value_min=servo_range._1, 
+          value_max=servo_range._2, 
+          load=True, 
+          wait_for_load=True
+        )
+
+
+if __name__ == "__main__":
+  import time
+
+  s = ServosController()
+
+  def spin_motor(): 
+    s.reset_motor()
+
+    while True:
+      for i in range(5, 100, 10):
+        s.set_motor_speed(i / 100)
+      input("next")
+
+  def spin_servos():
+    s.reset_servos()
+
+    for value in range(50):
+      print(f"Setting percent to: {50 - value}")
+      input("Continue?")
+      s.set_servo(s.servo_1, 50 - value)
+    for value in range(100):
+      print(f"Setting percent to: { value}")
+      input("Continue?")
+      s.set_servo(s.servo_1, value)

@@ -24,7 +24,7 @@ class SetSail(NamedTuple):
         return SetSail(Angle(degrees))
 
     @staticmethod
-    def __parse_num(data: str) -> float | None:
+    def __parse_num(data: str): #-> float | None:
         try:
             return float(data[len(SetSail.CMD_STRING):])
         except ValueError:
