@@ -28,10 +28,17 @@ class ServosController:
     def set_servo_2(self, percent: Percent) -> None:
         self.__set_servo(self.servo_2, self.servo_2_range, percent.value)
 
-    def reset_servos(self, zero=1) -> None:
+    def reset_servo_1(self, zero=1) -> None:
         for i in range(100):
             self.servo_1.value(zero)
+
+    def reset_servo_2(self, zero=1) -> None:
+        for i in range(100):
             self.servo_2.value(zero)
+
+    def reset_servos(self, zero=1) -> None:
+        self.reset_servo_1(zero)
+        self.reset_servo_2(zero)
 
     def reset_motor(self) -> None:
         print("Disabling motor..")
@@ -69,6 +76,13 @@ class ServosController:
     # noinspection PyMethodMayBeStatic
     def __set_servo(self, servo: Servo, servo_range: (int, int), percent: int) -> None:
         assert 0 <= percent <= 100, f"Angle must be between 0 and 100, not {percent}"
+        if percent == 0:
+            print("Value is 0, resetting servo..")
+            if servo == self.servo_1:
+                self.reset_servo_1()
+            else:
+                self.reset_servo_2()
+            return
         print(f"Setting servo {servo.pin} to {percent}")
         servo.to_percent(
             percent,
