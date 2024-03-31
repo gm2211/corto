@@ -9,10 +9,10 @@ class RudderPosition(NamedTuple):
 
     @staticmethod
     def left(percent: Percent) -> 'RudderPosition':
-        remapped = remap(percent, 0, 100, 50, 100)
+        remapped = remap(percent.value, 0, 100, 50, 100)
         return RudderPosition(Percent(remapped))
 
     @staticmethod
     def right(percent: Percent) -> 'RudderPosition':
-        remapped = remap(percent, 0, 100, 50, 0)
+        remapped = remap(percent.value, 0, 100, 50, 0)
         return RudderPosition(Percent(remapped))
