@@ -41,11 +41,11 @@ if __name__ == "__main__":
     b.servos_controller.reset_servos()
 
     input("left")
-    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(70)), Percent(0)))
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(70)), Percent(100)))
 
     input("right")
     b.set_attitude(BoatAttitude(RudderPosition.right(Percent(70)), Percent(0)))
 
     input("center")
-    b.set_attitude(BoatAttitude(RudderPosition(Percent(0)), Percent(0)))
+    b.set_attitude(BoatAttitude(RudderPosition.center(), Percent(500)))
 

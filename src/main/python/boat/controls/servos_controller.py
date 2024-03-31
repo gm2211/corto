@@ -79,8 +79,8 @@ class ServosController:
     # noinspection PyMethodMayBeStatic
     def __set_servo(self, servo: Servo, servo_range: (int, int, int), percent: int) -> None:
         assert 0 <= percent <= 100, f"Angle must be between 0 and 100, not {percent}"
-        if percent == 0:
-            print("Value is 0, resetting servo..")
+        if percent == 50:
+            print("Value is 50, resetting servo to zero position..")
             if servo == self.servo_1:
                 self.reset_servo_1()
             else:
