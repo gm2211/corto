@@ -47,8 +47,5 @@ if __name__ == "__main__":
     b.set_attitude(BoatAttitude(RudderPosition.right(Percent(70)), Percent(0)))
 
     input("center")
-    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
-    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
-    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
-    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
-    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
+    b.set_attitude(BoatAttitude(RudderPosition(Percent(0)), Percent(0)))
+
