@@ -37,4 +37,18 @@ class BoatAttitudeController:
 if __name__ == "__main__":
     b = BoatAttitudeController(ServosController(), NavParamsRecorder())
 
-    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(100)), Percent(0)))
+    input("reset")
+    b.servos_controller.reset_servos()
+
+    input("left")
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(70)), Percent(0)))
+
+    input("right")
+    b.set_attitude(BoatAttitude(RudderPosition.right(Percent(70)), Percent(0)))
+
+    input("center")
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
+    b.set_attitude(BoatAttitude(RudderPosition.left(Percent(0)), Percent(0)))
