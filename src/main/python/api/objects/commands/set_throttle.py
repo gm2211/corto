@@ -1,12 +1,14 @@
 from typing import NamedTuple
 
+from api.objects.units.percent import Percent
+
 
 class SetThrottle(NamedTuple):
-    throttle: int
+    throttle: Percent
     CMD_STRING = "TR"
 
     def serialize_for_lora(self):
-        return f"{SetThrottle.CMD_STRING}{self.throttle}"
+        return f"{SetThrottle.CMD_STRING}{self.throttle.value}"
 
     @staticmethod
     def can_parse_lora_data(data: str) -> bool:
@@ -20,10 +22,10 @@ class SetThrottle(NamedTuple):
             raise ValueError(f"Invalid data for SetThrottle: {data}")
         throttle_percent = SetThrottle.__parse_num(data)
         assert 0 <= throttle_percent <= 100, f"Throttle percent must be between 0 and 100, got {throttle_percent}"
-        return SetThrottle(throttle_percent)
+        return SetThrottle(Percent(throttle_percent))
 
     @staticmethod
-    def __parse_num(data: str):# -> int | None:
+    def __parse_num(data: str) -> int | None:
         try:
             return int(data[len(SetThrottle.CMD_STRING):])
         except ValueError:

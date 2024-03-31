@@ -1,8 +1,9 @@
 from typing import NamedTuple
 
-from api.objects.units.angle import Angle
+from api.objects.units.percent import Percent
+from api.objects.units.rudder_position import RudderPosition
 
 
 class BoatAttitude(NamedTuple):
-    rudder: Angle
-    sail_trim: Angle
+    rudder_position: RudderPosition
+    sail_trim: Percent

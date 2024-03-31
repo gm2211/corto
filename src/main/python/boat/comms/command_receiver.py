@@ -37,11 +37,11 @@ class CommandReceiver:
 
         if SetSail.can_parse_lora_data(command):
             set_sail = SetSail.deserialize_from_lora(command)
-            self.boat_controller.set_sail_trim(set_sail.angle)
+            self.boat_controller.set_sail_trim(set_sail.percent)
             return None
         if TurnRudder.can_parse_lora_data(command):
             set_rudder = TurnRudder.deserialize_from_lora(command)
-            self.boat_controller.set_rudder_angle(set_rudder.angle)
+            self.boat_controller.set_rudder_position(set_rudder.percent)
             return None
         if SendTelemetry.can_parse_lora_data(command):
             serialized_telemetry = self.nav_params_recorder.get_cur_nav_params().serialize_for_lora()
@@ -54,6 +54,6 @@ class CommandReceiver:
             return None
         if SetThrottle.can_parse_lora_data(command):
             set_throttle = SetThrottle.deserialize_from_lora(command)
-            self.boat_controller.set_motor_throttle(set_throttle.throttle / 100.0)
+            self.boat_controller.set_motor_throttle(set_throttle.throttle)
             return None
         print(f"Command was unknown: {command}")

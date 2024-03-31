@@ -4,9 +4,12 @@ from api.objects.nav_params.boat_attitude import BoatAttitude
 from api.objects.nav_params.nav_params import NavParams
 from api.objects.units.angle import Angle
 from api.objects.units.gps_coord import GPSCoord
+from api.objects.units.percent import Percent
+from api.objects.units.rudder_position import RudderPosition
 from boat.telemetry.nav_params_recorder import NavParamsRecorder
 from boat.telemetry.sensors.gps_locator import GPSLocator
 from boat.telemetry.sensors.wind_vane import WindVane
+from utils.range_utils import remap
 
 
 class Navigator:
@@ -20,8 +23,20 @@ class Navigator:
         nav_params: NavParams = self.nav_params_recorder.get_cur_nav_params()
         cur_heading: Angle = nav_params.heading
         desired_heading: Angle = self.__bearing_to(cur_pos, dest)
-        sail_trim: Angle = self.__angle_diff(cur_heading, self.wind_vane.get_true_wind())
-        return BoatAttitude(desired_heading, sail_trim)
+        heading_diff: Angle = self.__angle_diff(cur_heading, desired_heading)
+        # TODO: Be more granular with rudder position
+        rudder_position: RudderPosition = (RudderPosition.left(Percent(100))
+                                           if heading_diff.degrees > 0 else RudderPosition.right(Percent(100)))
+        # Normalize the angle to be between 0 and 180 degrees
+        angle_between_boat_and_wind: Angle = Angle(
+            abs(
+                self.__normalize_with_sign(
+                    self.__angle_diff(cur_heading, self.wind_vane.get_true_wind())
+                ).degrees
+            )
+        )
+        sail_trim: Percent = Percent(remap(angle_between_boat_and_wind.degrees, 45, 135, 100, 0))
+        return BoatAttitude(rudder_position, sail_trim)
 
     # Calculate bearing to destination
     @staticmethod
@@ -41,7 +56,13 @@ class Navigator:
 
     @staticmethod
     def __angle_diff(a: Angle, b: Angle) -> Angle:
-        diff: float = abs(a.degrees - b.degrees) % 360
-        if diff > 180:
+        diff: float = (a.degrees - b.degrees) % 360
+        if a.degrees < b.degrees:
             return Angle(360 - diff)
         return Angle(diff)
+
+    @staticmethod
+    def __normalize_with_sign(angle: Angle):
+        if angle.degrees < 180:
+            return angle
+        return Angle(angle.degrees - 360)

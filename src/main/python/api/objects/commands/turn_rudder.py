@@ -1,14 +1,14 @@
 from typing import NamedTuple
 
-from api.objects.units.angle import Angle
+from api.objects.units.percent import Percent
 
 
 class TurnRudder(NamedTuple):
-    angle: Angle
+    percent: Percent
     CMD_STRING = "R"
 
     def serialize_for_lora(self):
-        return f"{TurnRudder.CMD_STRING}{self.angle.degrees:.1f}"
+        return f"{TurnRudder.CMD_STRING}{self.percent.value}"
 
     @staticmethod
     def can_parse_lora_data(data: str) -> bool:
@@ -20,12 +20,12 @@ class TurnRudder(NamedTuple):
     def deserialize_from_lora(data: str) -> 'TurnRudder':
         if not TurnRudder.can_parse_lora_data(data):
             raise ValueError(f"Invalid data for TurnRudder: {data}")
-        degrees = TurnRudder.__parse_num(data)
-        return TurnRudder(Angle(degrees))
+        rudder_percent = TurnRudder.__parse_num(data)
+        return TurnRudder(Percent(rudder_percent))
 
     @staticmethod
-    def __parse_num(data: str):# -> float | None:
+    def __parse_num(data: str) -> int | None:
         try:
-            return float(data[len(TurnRudder.CMD_STRING):])
+            return int(data[len(TurnRudder.CMD_STRING):])
         except ValueError:
             return None

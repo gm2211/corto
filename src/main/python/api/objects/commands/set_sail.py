@@ -1,14 +1,14 @@
 from typing import NamedTuple
 
-from api.objects.units.angle import Angle
+from api.objects.units.percent import Percent
 
 
 class SetSail(NamedTuple):
-    angle: Angle
+    percent: Percent
     CMD_STRING = "S"
 
     def serialize_for_lora(self):
-        return f"{SetSail.CMD_STRING}{self.angle.degrees:.1f}"
+        return f"{SetSail.CMD_STRING}{self.percent.value}"
 
     @staticmethod
     def can_parse_lora_data(data: str) -> bool:
@@ -20,12 +20,12 @@ class SetSail(NamedTuple):
     def deserialize_from_lora(data: str) -> 'SetSail':
         if not SetSail.can_parse_lora_data(data):
             raise ValueError(f"Invalid data for SetSail: {data}")
-        degrees = SetSail.__parse_num(data)
-        return SetSail(Angle(degrees))
+        percent = SetSail.__parse_num(data)
+        return SetSail(Percent(percent))
 
     @staticmethod
-    def __parse_num(data: str): #-> float | None:
+    def __parse_num(data: str) -> int | None:
         try:
-            return float(data[len(SetSail.CMD_STRING):])
+            return int(data[len(SetSail.CMD_STRING):])
         except ValueError:
             return None
