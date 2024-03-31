@@ -10,35 +10,34 @@ from utils.range_utils import remap
 class ServosController:
     MOTOR_MIN_SPEED_DUTY_CYCLE = 0.06
     MOTOR_MAX_SPEED_DUTY_CYCLE = 0.12
+    # We need to do it this way and not calibrate, or else we overshoot boat physical limits
+    SERVO_1_RANGE = (-60, 10, 45)  # Usually sail
+    SERVO_2_RANGE = (-45, 1, 45)  # Usually rudder
 
     def __init__(self):
         self.board = InventorHATMini(init_servos=False, init_leds=False)
         self.servo_1 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_1])
         self.servo_2 = Servo(self.board.ioe, self.board.IOE_SERVO_PINS[SERVO_4])
-        # We need to do it this way and not calibrate, or else we overshoot boat physical limits
-        self.servo_1_range = (-60, 45)
-        # We need to do it this way and not calibrate, or else we overshoot boat physical limits
-        self.servo_2_range = (-45, 45)
         self.motor: Motor = self.board.motor_from_servo_pins(SERVO_2, SERVO_3, direction=NORMAL_DIR, freq=60)
         self.motor.disable()
 
     def set_servo_1(self, percent: Percent) -> None:
-        self.__set_servo(self.servo_1, self.servo_1_range, percent.value)
+        self.__set_servo(self.servo_1, self.SERVO_1_RANGE, percent.value)
 
     def set_servo_2(self, percent: Percent) -> None:
-        self.__set_servo(self.servo_2, self.servo_2_range, percent.value)
+        self.__set_servo(self.servo_2, self.SERVO_2_RANGE, percent.value)
 
-    def reset_servo_1(self, zero=1) -> None:
+    def reset_servo_1(self) -> None:
         for i in range(100):
-            self.servo_1.value(zero)
+            self.servo_1.value(self.SERVO_1_RANGE[1])
 
-    def reset_servo_2(self, zero=1) -> None:
+    def reset_servo_2(self) -> None:
         for i in range(100):
-            self.servo_2.value(zero)
+            self.servo_2.value(self.SERVO_2_RANGE[1])
 
-    def reset_servos(self, zero=1) -> None:
-        self.reset_servo_1(zero)
-        self.reset_servo_2(zero)
+    def reset_servos(self) -> None:
+        self.reset_servo_1()
+        self.reset_servo_2()
 
     def reset_motor(self) -> None:
         print("Disabling motor..")
@@ -74,7 +73,7 @@ class ServosController:
         self.motor.speed(motor_speed)
 
     # noinspection PyMethodMayBeStatic
-    def __set_servo(self, servo: Servo, servo_range: (int, int), percent: int) -> None:
+    def __set_servo(self, servo: Servo, servo_range: (int, int, int), percent: int) -> None:
         assert 0 <= percent <= 100, f"Angle must be between 0 and 100, not {percent}"
         if percent == 0:
             print("Value is 0, resetting servo..")
@@ -89,7 +88,7 @@ class ServosController:
             in_min=0,
             in_max=100,
             value_min=servo_range[0],
-            value_max=servo_range[1],
+            value_max=servo_range[2],
             load=True,
             wait_for_load=True
         )
