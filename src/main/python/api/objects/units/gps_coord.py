@@ -23,3 +23,6 @@ class GPSCoord(NamedTuple):
         if not lat_in_range or not lon_in_range:
             raise ValueError(f"Invalid data for GPSCoord: {param}")
         return GPSCoord(float(lat), float(lon))
+
+    def __eq__(self, other):
+        return self.lat == other.lat and self.lon == other.lon

@@ -20,3 +20,6 @@ class RudderPosition(NamedTuple):
     @staticmethod
     def center() -> 'RudderPosition':
         return RudderPosition(Percent(50))
+
+    def __eq__(self, other):
+        return self.percent == other.percent
