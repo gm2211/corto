@@ -13,6 +13,9 @@ from utils.range_utils import remap
 
 
 class Navigator:
+    MIN_WIND_ANGLE = 45
+    MAX_WIND_ANGLE = 135
+
     def __init__(self, wind_vane: WindVane, locator: GPSLocator, nav_params_recorder: NavParamsRecorder):
         self.wind_vane: WindVane = wind_vane
         self.locator: GPSLocator = locator
@@ -28,14 +31,24 @@ class Navigator:
         rudder_position: RudderPosition = (RudderPosition.left(Percent(100))
                                            if heading_diff.degrees > 0 else RudderPosition.right(Percent(100)))
         # Normalize the angle to be between 0 and 180 degrees
-        angle_between_boat_and_wind: Angle = Angle(
-            abs(
-                self.__normalize_with_sign(
-                    self.__angle_diff(cur_heading, self.wind_vane.get_true_wind())
-                ).degrees
-            )
+        angle_between_boat_and_wind: int = abs(
+            self.__normalize_with_sign(
+                self.__angle_diff(cur_heading, self.wind_vane.get_true_wind())
+            ).degrees
         )
-        sail_trim: Percent = Percent(remap(angle_between_boat_and_wind.degrees, 45, 135, 100, 0))
+        angle_between_boat_and_wind = Angle(min(
+          self.MAX_WIND_ANGLE, 
+          max(self.MIN_WIND_ANGLE, angle_between_boat_and_wind)
+        ))
+        sail_trim: Percent = Percent(
+          remap(
+            angle_between_boat_and_wind.degrees, 
+            self.MIN_WIND_ANGLE, 
+            self.MAX_WIND_ANGLE, 
+            100, 
+            0
+          )
+        )
         return BoatAttitude(rudder_position, sail_trim)
 
     # Calculate bearing to destination

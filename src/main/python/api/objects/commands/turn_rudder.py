@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from api.objects.units.percent import Percent
 
@@ -24,7 +24,7 @@ class TurnRudder(NamedTuple):
         return TurnRudder(Percent(rudder_percent))
 
     @staticmethod
-    def __parse_num(data: str) -> int | None:
+    def __parse_num(data: str) -> Optional[int]:
         try:
             return int(data[len(TurnRudder.CMD_STRING):])
         except ValueError:

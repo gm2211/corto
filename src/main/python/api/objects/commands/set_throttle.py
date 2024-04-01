@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from api.objects.units.percent import Percent
 
@@ -25,7 +25,7 @@ class SetThrottle(NamedTuple):
         return SetThrottle(Percent(throttle_percent))
 
     @staticmethod
-    def __parse_num(data: str) -> int | None:
+    def __parse_num(data: str) -> Optional[int]:
         try:
             return int(data[len(SetThrottle.CMD_STRING):])
         except ValueError:
