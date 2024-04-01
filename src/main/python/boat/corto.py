@@ -1,3 +1,4 @@
+from typing import Optional
 from api.objects.nav_params.boat_attitude import BoatAttitude
 from api.objects.units.gps_coord import GPSCoord
 from boat.comms.command_receiver import CommandReceiver
@@ -19,12 +20,15 @@ class Corto:
         self.boat_attitude_controller = boat_attitude_controller
         self.course_plotter = navigator
         self.command_receiver = command_receiver
+        self.latest_boat_attitude: BoatAttitude = None
 
     def run_loop(self) -> None:
         dest: GPSCoord = self.command_receiver.get_cur_destination()
         boat_attitude: BoatAttitude = self.course_plotter.compute_boat_attitude(dest)
-        self.boat_attitude_controller.set_attitude(boat_attitude)
-        pass
+        if boat_attitude != self.latest_boat_attitude:
+          print(f"Boat attitude changed, was {self.latest_boat_attitude} and now {boat_attitude}")
+          self.boat_attitude_controller.set_attitude(boat_attitude)
+          self.latest_boat_attitude = boat_attitude
 
 
 if __name__ == "__main__":
@@ -39,4 +43,3 @@ if __name__ == "__main__":
 
     while True:
         corto.run_loop()
-        pass

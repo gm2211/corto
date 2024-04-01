@@ -49,3 +49,7 @@ if __name__ == "__main__":
     input("center")
     b.set_attitude(BoatAttitude(RudderPosition.center(), Percent(50)))
 
+    input("motor")
+    b.set_motor_throttle(Percent(60))
+    input("end?")
+

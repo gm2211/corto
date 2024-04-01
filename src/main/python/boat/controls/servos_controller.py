@@ -1,3 +1,5 @@
+import time 
+
 from inventorhatmini import InventorHATMini, SERVO_1, SERVO_2, SERVO_3, SERVO_4
 from ioexpander.common import NORMAL_DIR
 from ioexpander.servo import Servo

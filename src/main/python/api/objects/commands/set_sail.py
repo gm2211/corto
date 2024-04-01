@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from api.objects.units.percent import Percent
 
@@ -24,7 +24,7 @@ class SetSail(NamedTuple):
         return SetSail(Percent(percent))
 
     @staticmethod
-    def __parse_num(data: str) -> int | None:
+    def __parse_num(data: str) -> Optional[int]:
         try:
             return int(data[len(SetSail.CMD_STRING):])
         except ValueError:
