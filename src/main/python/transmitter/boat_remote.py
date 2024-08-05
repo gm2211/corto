@@ -1,11 +1,11 @@
 import board
 import busio
 
-from api.objects.commands.set_sail import SetSail
-from api.objects.commands.set_throttle import SetThrottle
-from api.objects.commands.turn_rudder import TurnRudder
-from api.objects.units.percent import Percent
-from lora.radio import Radio
+from ..api.objects.commands.set_sail import SetSail
+from ..api.objects.commands.set_throttle import SetThrottle
+from ..api.objects.commands.turn_rudder import TurnRudder
+from ..api.objects.units.percent import Percent
+from ..lora.radio import Radio
 
 
 class BoatRemote:
