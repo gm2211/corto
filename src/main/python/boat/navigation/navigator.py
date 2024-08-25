@@ -6,9 +6,9 @@ from api.objects.units.angle import Angle
 from api.objects.units.gps_coord import GPSCoord
 from api.objects.units.percent import Percent
 from api.objects.units.rudder_position import RudderPosition
-from boat.telemetry.nav_params_recorder import NavParamsRecorder
-from boat.telemetry.sensors.gps_locator import GPSLocator
-from boat.telemetry.sensors.wind_vane import WindVane
+from telemetry.nav_params_recorder import NavParamsRecorder
+from telemetry.sensors.gps_locator import GPSLocator
+from telemetry.sensors.wind_vane import WindVane
 from utils.range_utils import remap
 
 

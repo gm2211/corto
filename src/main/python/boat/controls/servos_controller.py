@@ -109,10 +109,11 @@ if __name__ == "__main__":
     def spin_motor():
         s.reset_motor()
 
-        while True:
-            for i in range(5, 100, 10):
-                s.set_motor_throttle(Percent(i))
-            input("next")
+        for i in range(5, 100, 10):
+            s.set_motor_throttle(Percent(i))
+            time.sleep(1)
+        s.reset_motor()
+        s.set_motor_throttle(Percent(4))
 
 
     def spin_servos():
@@ -122,7 +123,12 @@ if __name__ == "__main__":
             print(f"Setting percent to: {50 - value}")
             input("Continue?")
             s.set_servo_1(Percent(value))
+            s.set_servo_2(Percent(value))
         for value in range(100):
             print(f"Setting percent to: {value}")
             input("Continue?")
             s.set_servo_1(Percent(value))
+            s.set_servo_2(Percent(value))
+
+    spin_servos()
+    spin_motor()

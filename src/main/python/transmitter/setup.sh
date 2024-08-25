@@ -20,6 +20,7 @@ pip3 install adafruit-circuitpython-busdevice
 pip3 install adafruit-circuitpython-ssd1306
 pip3 install adafruit-circuitpython-rfm9x
 pip3 install --upgrade adafruit-python-shell click
+pip3 install adafruit-circuitpython-ads1x15
 sudo -E env PATH="$PATH" python3 "$SCRIPT_DIR/../utils/raspi-spi-reassign.py" --ce0=disabled --ce1=disabled
 echo "If you still running into ce0 and ce1 issues, try running the following command:"
 echo "sudo -E env PATH=$PATH python3 raspi-spi-reassign.py --ce0=5 --ce1=6"

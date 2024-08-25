@@ -5,8 +5,8 @@ from api.objects.commands.set_throttle import SetThrottle
 from api.objects.commands.turn_rudder import TurnRudder
 from api.objects.units.gps_coord import GPSCoord
 from lora.radio import Radio
-from boat.controls.boat_attitude_controller import BoatAttitudeController
-from boat.telemetry.nav_params_recorder import NavParamsRecorder
+from controls.boat_attitude_controller import BoatAttitudeController
+from telemetry.nav_params_recorder import NavParamsRecorder
 
 
 class CommandReceiver:

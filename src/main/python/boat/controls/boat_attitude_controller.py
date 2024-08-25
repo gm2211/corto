@@ -1,8 +1,8 @@
 from api.objects.nav_params.boat_attitude import BoatAttitude
 from api.objects.units.percent import Percent
 from api.objects.units.rudder_position import RudderPosition
-from boat.controls.servos_controller import ServosController
-from boat.telemetry.nav_params_recorder import NavParamsRecorder
+from controls.servos_controller import ServosController
+from telemetry.nav_params_recorder import NavParamsRecorder
 
 
 class BoatAttitudeController:
