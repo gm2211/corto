@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
+    <!-- Font Awesome for the sailboat icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .boat-icon {
+            color: #2b65ec;
+            font-size: 24px;
+            text-align: center;
+            line-height: 24px;
+        }
+        .boat-icon i {
+            transform-origin: center;
+            transition: transform 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive Map</h1>
+        <div id="map"></div>
+    </div>
+
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([43.7696, -70.2544], 12);  // Initial view of Portland, ME
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Create a custom icon using Font Awesome
+        function createBoatIcon(heading) {
+            return L.divIcon({
+                className: 'boat-icon',
+                html: `<i class="fa-solid fa-sailboat" style="transform: rotate(${heading}deg)"></i>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+        }
+
+        // Initialize boat marker
+        var boatMarker = null;
+
+        // Function to update boat position
+        function updateBoatPosition() {
+            fetch('/api/boat-location')
+                .then(response => response.json())
+                .then(data => {
+                    const position = [data.lat, data.lng];
+                    
+                    if (boatMarker === null) {
+                        // Create new marker if it doesn't exist
+                        boatMarker = L.marker(position, {
+                            icon: createBoatIcon(data.heading)
+                        }).addTo(map);
+                        map.setView(position, 12);
+                    } else {
+                        // Update existing marker
+                        boatMarker.setLatLng(position);
+                        boatMarker.setIcon(createBoatIcon(data.heading));
+                    }
+                    
+                    boatMarker.bindPopup(`Boat location<br>Heading: ${data.heading}°`)
+                            .openPopup();
+                })
+                .catch(error => console.error('Error fetching boat location:', error));
+        }
+
+        // Update boat position immediately and every 5 seconds
+        updateBoatPosition();
+        setInterval(updateBoatPosition, 5000);
+    </script>
+</body>
+</html> 
