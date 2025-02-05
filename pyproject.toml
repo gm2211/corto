@@ -9,8 +9,8 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.9"
 pyformance = "^0.4"
-inventorhatmini = "^0.0.1"
-pimoroni-ioexpander = "^0.0.5"
+inventorhatmini = "^1.0.0"
+pimoroni-ioexpander = "^1.0.1"
 "RPi.GPIO" = "^0.7.1"
 
 
