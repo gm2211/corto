@@ -3,14 +3,14 @@ import threading
 import time
 import math
 
-# Import dataclasses from api.objects
-from ..api.objects.units.angle import Angle
-from ..api.objects.units.percent import Percent
-from ..api.objects.units.gps_coord import GPSCoord
-from ..api.objects.units.speed import Speed
-from ..api.objects.units.rudder_position import RudderPosition as OriginalRudderPosition
-from ..api.objects.nav_params.boat_attitude import BoatAttitude as OriginalBoatAttitude
-from ..api.objects.nav_params.nav_params import NavParams
+# Import dataclasses from api.objects with absolute imports
+from api.objects.units.angle import Angle
+from api.objects.units.percent import Percent
+from api.objects.units.gps_coord import GPSCoord
+from api.objects.units.speed import Speed
+from api.objects.units.rudder_position import RudderPosition as OriginalRudderPosition
+from api.objects.nav_params.boat_attitude import BoatAttitude as OriginalBoatAttitude
+from api.objects.nav_params.nav_params import NavParams
 
 
 # Adapter class for RudderPosition to match the simulator's expectations

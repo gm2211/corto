@@ -6,8 +6,8 @@ This module provides functions to:
 3. Pass UI controls to the simulator
 """
 
-from ..api.objects.units.percent import Percent
-from .simulator import get_simulator
+from api.objects.units.percent import Percent
+from simulator.simulator import get_simulator
 
 
 # Dictionary to map app.py boat_state to simulator parameters

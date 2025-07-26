@@ -2,8 +2,10 @@ from flask import Flask, render_template, jsonify, request
 import threading
 import time
 
-# Import simulator integration
-from ..simulator.simulator_integration import initialize_simulator, update_app_boat_state, process_control_command
+# Do not use relative imports, use absolute imports with PYTHONPATH
+# The run.sh script sets PYTHONPATH to src/main/python
+
+from simulator.simulator_integration import initialize_simulator, update_app_boat_state, process_control_command
 
 app = Flask(__name__)
 
@@ -106,4 +108,11 @@ def control():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import argparse
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Run the Corto boat simulator app')
+    parser.add_argument('--port', type=int, default=5000, help='Port to run the app on')
+    args = parser.parse_args()
+    
+    app.run(debug=True, port=args.port)
