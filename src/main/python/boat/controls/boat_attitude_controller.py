@@ -1,7 +1,8 @@
 from api.objects.nav_params.boat_attitude import BoatAttitude
 from api.objects.units.percent import Percent
 from api.objects.units.rudder_position import RudderPosition
-from controls.servos_controller import ServosController
+from controls.servos_controller import ServosController  # Keep for type annotations
+from .servos_factory import get_servos_controller
 from telemetry.nav_params_recorder import NavParamsRecorder
 
 
@@ -35,7 +36,7 @@ class BoatAttitudeController:
 
 
 if __name__ == "__main__":
-    b = BoatAttitudeController(ServosController(), NavParamsRecorder())
+    b = BoatAttitudeController(get_servos_controller(), NavParamsRecorder())
 
     input("reset")
     b.servos_controller.reset_servos()

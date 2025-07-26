@@ -15,24 +15,56 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
     
-    <!-- Font Awesome for the sailboat icon -->
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+        .map-container {
+            flex: 1;
+        }
         #map {
             height: 600px;
             width: 100%;
+            margin-bottom: 20px;
+        }
+        .side-panel {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        .info-group {
+            margin-bottom: 20px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .info-label {
+            color: #666;
+        }
+        .info-value {
+            font-weight: bold;
+            color: #333;
         }
         body {
             margin: 0;
             padding: 20px;
             font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        h1 {
+        h1, h2 {
             color: #333;
             margin-bottom: 20px;
         }
@@ -41,17 +73,256 @@
             font-size: 24px;
             text-align: center;
             line-height: 24px;
+            position: relative;
         }
         .boat-icon i {
             transform-origin: center;
             transition: transform 0.5s ease;
         }
+        .rudder-indicator {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #333;
+            top: -8px;
+            left: -8px;
+            overflow: hidden;
+        }
+        .rudder-fill {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        .rudder-fill.port {
+            left: 0;
+            background-color: rgba(255, 0, 0, 0.3);
+            transform-origin: right center;
+        }
+        .rudder-fill.starboard {
+            right: 0;
+            background-color: rgba(0, 255, 0, 0.3);
+            transform-origin: left center;
+        }
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .control-label {
+            width: 120px;
+            font-weight: bold;
+        }
+        .slider-container {
+            flex-grow: 1;
+            margin: 0 15px;
+            position: relative;
+        }
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: transparent;
+            margin: 10px 0;
+        }
+        /* Slider Track */
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            border: none;
+        }
+        input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            border: none;
+        }
+        /* Slider Thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #2b65ec;
+            cursor: pointer;
+            margin-top: -6px; /* (thumb height - track height) / 2 */
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #2b65ec;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        /* Center mark for throttle and rudder sliders */
+        .slider-container::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 10px;
+            background: #999;
+            pointer-events: none;
+        }
+        /* Slider colors on hover/focus */
+        input[type="range"]:hover::-webkit-slider-thumb {
+            background: #1a4bc8;
+        }
+        input[type="range"]:hover::-moz-range-thumb {
+            background: #1a4bc8;
+        }
+        input[type="range"]:focus {
+            outline: none;
+        }
+        /* Value display styling */
+        .value-display {
+            width: 60px;
+            text-align: right;
+            font-family: monospace;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2b65ec;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1a4bc8;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Interactive Map</h1>
-        <div id="map"></div>
+        <div class="map-container">
+            <h1>Interactive Map</h1>
+            <div id="map"></div>
+            
+            <div class="control-panel">
+                <h2>Boat Controls</h2>
+                
+                <div class="control-group">
+                    <div class="control-row">
+                        <span class="control-label">Throttle</span>
+                        <div class="slider-container">
+                            <input type="range" id="throttle" min="-100" max="100" value="0" step="1">
+                        </div>
+                        <span class="value-display" id="throttle-value">0%</span>
+                    </div>
+                    
+                    <div class="control-row">
+                        <span class="control-label">Rudder</span>
+                        <div class="slider-container">
+                            <input type="range" id="rudder" min="-100" max="100" value="0" step="1">
+                        </div>
+                        <span class="value-display" id="rudder-value">0%</span>
+                    </div>
+
+                    <div class="control-row">
+                        <span class="control-label">Sails</span>
+                        <div class="slider-container">
+                            <input type="range" id="sails" min="0" max="100" value="0" step="1">
+                        </div>
+                        <span class="value-display" id="sails-value">0%</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <button id="emergency-stop">EMERGENCY STOP</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <h2>Boat Information</h2>
+            <div class="info-group">
+                <div class="info-row">
+                    <span class="info-label">Heading:</span>
+                    <span class="info-value" id="heading-value">0°</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Speed:</span>
+                    <span class="info-value" id="speed-value">0 knots</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Movement Direction:</span>
+                    <span class="info-value" id="movement-value">0°</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Rudder:</span>
+                    <span class="info-value" id="rudder-info-value">0°</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Sails:</span>
+                    <span class="info-value" id="sails-info-value">0%</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Location:</span>
+                    <span class="info-value" id="location-value">-</span>
+                </div>
+            </div>
+            
+            <h2>Environmental Controls</h2>
+            <div class="control-group">
+                <div class="control-row">
+                    <span class="control-label">Wind Speed</span>
+                    <div class="slider-container">
+                        <input type="range" id="wind-speed" min="0" max="30" value="10" step="1">
+                    </div>
+                    <span class="value-display" id="wind-speed-value">10 knots</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Wind Direction</span>
+                    <div class="slider-container">
+                        <input type="range" id="wind-direction" min="0" max="359" value="45" step="1">
+                    </div>
+                    <span class="value-display" id="wind-direction-value">45°</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Current Speed</span>
+                    <div class="slider-container">
+                        <input type="range" id="current-speed" min="0" max="5" value="0" step="0.1">
+                    </div>
+                    <span class="value-display" id="current-speed-value">0 knots</span>
+                </div>
+                
+                <div class="control-row">
+                    <span class="control-label">Current Direction</span>
+                    <div class="slider-container">
+                        <input type="range" id="current-direction" min="0" max="359" value="90" step="1">
+                    </div>
+                    <span class="value-display" id="current-direction-value">90°</span>
+                </div>
+                
+                <button id="apply-environment">Apply Environment</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -63,12 +334,91 @@
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+        
+        // Create wind and current indicators
+        var windIndicator = null;
+        var currentIndicator = null;
+        
+        // Function to create an arrow icon for wind or current
+        function createArrowIcon(direction, color, size) {
+            const arrowSize = size || 24;
+            const html = `
+                <div style="position: relative; width: ${arrowSize}px; height: ${arrowSize}px;">
+                    <i class="fa-solid fa-arrow-up" style="color: ${color}; font-size: ${arrowSize}px; transform: rotate(${direction}deg);"></i>
+                </div>
+            `;
+            
+            return L.divIcon({
+                className: 'arrow-icon',
+                html: html,
+                iconSize: [arrowSize, arrowSize],
+                iconAnchor: [arrowSize/2, arrowSize/2]
+            });
+        }
+        
+        // Function to update wind and current indicators
+        function updateEnvironmentIndicators(position, windSpeed, windDirection, currentSpeed, currentDirection) {
+            // Remove existing indicators
+            if (windIndicator) {
+                map.removeLayer(windIndicator);
+            }
+            if (currentIndicator) {
+                map.removeLayer(currentIndicator);
+            }
+            
+            // Only show indicators if there's wind or current
+            if (windSpeed > 0) {
+                // Calculate position offset for wind indicator (place it near the boat)
+                const windOffset = L.point(30, 0);
+                const windPos = L.latLng(position[0], position[1]).toBounds(50).getCenter();
+                
+                // Create wind indicator with size proportional to wind speed
+                const windSize = Math.max(16, Math.min(32, 16 + windSpeed));
+                windIndicator = L.marker(windPos, {
+                    icon: createArrowIcon(windDirection, '#3388ff', windSize),
+                    zIndexOffset: -100
+                }).addTo(map);
+                
+                // Add tooltip
+                windIndicator.bindTooltip(`Wind: ${windSpeed} knots, ${windDirection}°`, {
+                    permanent: false,
+                    direction: 'top'
+                });
+            }
+            
+            if (currentSpeed > 0) {
+                // Calculate position offset for current indicator (place it near the boat)
+                const currentOffset = L.point(-30, 0);
+                const currentPos = L.latLng(position[0], position[1]).toBounds(50).getCenter();
+                
+                // Create current indicator with size proportional to current speed
+                const currentSize = Math.max(16, Math.min(32, 16 + currentSpeed * 5));
+                currentIndicator = L.marker(currentPos, {
+                    icon: createArrowIcon(currentDirection, '#33ff88', currentSize),
+                    zIndexOffset: -100
+                }).addTo(map);
+                
+                // Add tooltip
+                currentIndicator.bindTooltip(`Current: ${currentSpeed} knots, ${currentDirection}°`, {
+                    permanent: false,
+                    direction: 'top'
+                });
+            }
+        }
 
         // Create a custom icon using Font Awesome
-        function createBoatIcon(heading) {
+        function createBoatIcon(heading, rudderAngle, speed, movementDirection) {
+            const html = `
+                <div class="rudder-indicator">
+                    <div class="rudder-fill port" style="transform: scaleX(${rudderAngle < 0 ? -rudderAngle/100 : 0})"></div>
+                    <div class="rudder-fill starboard" style="transform: scaleX(${rudderAngle > 0 ? rudderAngle/100 : 0})"></div>
+                </div>
+                <i class="fa-solid fa-sailboat" style="transform: rotate(${heading}deg)"></i>
+            `;
+            
             return L.divIcon({
                 className: 'boat-icon',
-                html: `<i class="fa-solid fa-sailboat" style="transform: rotate(${heading}deg)"></i>`,
+                html: html,
                 iconSize: [24, 24],
                 iconAnchor: [12, 12]
             });
@@ -77,7 +427,7 @@
         // Initialize boat marker
         var boatMarker = null;
 
-        // Function to update boat position
+        // Function to update boat position and information
         function updateBoatPosition() {
             fetch('/api/boat-location')
                 .then(response => response.json())
@@ -85,19 +435,28 @@
                     const position = [data.lat, data.lng];
                     
                     if (boatMarker === null) {
-                        // Create new marker if it doesn't exist
                         boatMarker = L.marker(position, {
-                            icon: createBoatIcon(data.heading)
+                            icon: createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction)
                         }).addTo(map);
                         map.setView(position, 12);
                     } else {
-                        // Update existing marker
                         boatMarker.setLatLng(position);
-                        boatMarker.setIcon(createBoatIcon(data.heading));
+                        boatMarker.setIcon(createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction));
                     }
-                    
-                    boatMarker.bindPopup(`Boat location<br>Heading: ${data.heading}°`)
-                            .openPopup();
+
+                    // Update side panel information
+                    document.getElementById('heading-value').textContent = `${data.heading}°`;
+                    document.getElementById('speed-value').textContent = `${data.speed} knots`;
+                    document.getElementById('movement-value').textContent = `${data.movement_direction}°`;
+                    document.getElementById('rudder-info-value').textContent = `${data.rudder_angle}°`;
+                    document.getElementById('sails-info-value').textContent = `${data.sail_position}%`;
+                    document.getElementById('location-value').textContent = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
+
+                    // Update control values to match boat state
+                    document.getElementById('rudder').value = data.rudder_angle;
+                    document.getElementById('rudder-value').textContent = `${data.rudder_angle}%`;
+                    document.getElementById('sails').value = data.sail_position;
+                    document.getElementById('sails-value').textContent = `${data.sail_position}%`;
                 })
                 .catch(error => console.error('Error fetching boat location:', error));
         }
@@ -105,6 +464,362 @@
         // Update boat position immediately and every 5 seconds
         updateBoatPosition();
         setInterval(updateBoatPosition, 5000);
+
+        // Control panel functionality
+        const throttleSlider = document.getElementById('throttle');
+        const rudderSlider = document.getElementById('rudder');
+        const sailsSlider = document.getElementById('sails');
+        const throttleValue = document.getElementById('throttle-value');
+        const rudderValue = document.getElementById('rudder-value');
+        const sailsValue = document.getElementById('sails-value');
+        const emergencyStop = document.getElementById('emergency-stop');
+
+        // Function to handle slider track clicks
+        function handleSliderClick(slider, event) {
+            const rect = slider.getBoundingClientRect();
+            const clickPosition = event.clientX - rect.left;
+            const percentage = clickPosition / rect.width;
+            
+            // Calculate value based on slider range and type
+            const range = slider.max - slider.min;
+            let value;
+            
+            if (slider.id === 'sails') {
+                // Sails: calculate from left edge (0-100)
+                value = Math.round(range * percentage);
+            } else {
+                // Throttle and Rudder: calculate from center (-100 to 100)
+                const centerPercentage = percentage - 0.5;  // -0.5 to 0.5
+                value = Math.round(centerPercentage * range);
+            }
+            
+            // Clamp value to valid range
+            value = Math.max(slider.min, Math.min(slider.max, value));
+            
+            // Update slider and trigger events
+            slider.value = value;
+            
+            // Create and dispatch input event
+            const inputEvent = new Event('input', { bubbles: true });
+            slider.dispatchEvent(inputEvent);
+            
+            // Create and dispatch change event
+            const changeEvent = new Event('change', { bubbles: true });
+            slider.dispatchEvent(changeEvent);
+        }
+
+        // Add click handlers to slider containers
+        document.querySelectorAll('.slider-container').forEach(container => {
+            container.addEventListener('click', (e) => {
+                // Only handle clicks on the track, not the thumb or center mark
+                if (e.target.classList.contains('slider-container')) {
+                    const slider = container.querySelector('input[type="range"]');
+                    handleSliderClick(slider, e);
+                }
+            });
+        });
+
+        // Initialize all sliders to zero
+        function initializeControls() {
+            // Set slider values
+            throttleSlider.value = "0";
+            rudderSlider.value = "0";
+            sailsSlider.value = "0";
+            
+            // Set display values
+            throttleValue.textContent = "0%";
+            rudderValue.textContent = "0%";
+            sailsValue.textContent = "0%";
+            
+            // Set info panel values
+            document.getElementById('heading-value').textContent = "0°";
+            document.getElementById('speed-value').textContent = "0 knots";
+            document.getElementById('movement-value').textContent = "0°";
+            document.getElementById('rudder-info-value').textContent = "0°";
+            document.getElementById('sails-info-value').textContent = "0%";
+            document.getElementById('location-value').textContent = "-";
+        }
+
+        // Keep track of current boat state
+        let currentBoatState = {
+            heading: 0,
+            speed: 0,
+            movementDirection: 0,
+            rudderAngle: 0,
+            sailPosition: 0
+        };
+
+        // Function to send control commands
+        function sendControl(command, value) {
+            fetch('/api/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command, value })
+            })
+            .catch(error => console.error('Error sending control:', error));
+        }
+
+        // Function to update visual state
+        function updateVisualState(command, value) {
+            if (!boatMarker) return;
+
+            switch(command) {
+                case 'rudder':
+                    currentBoatState.rudderAngle = value;
+                    break;
+                case 'sails':
+                    currentBoatState.sailPosition = value;
+                    break;
+                case 'throttle':
+                    // Update any throttle-specific visuals here
+                    break;
+            }
+
+            // Update the boat icon with current state
+            boatMarker.setIcon(createBoatIcon(
+                currentBoatState.heading,
+                currentBoatState.rudderAngle,
+                currentBoatState.speed,
+                currentBoatState.movementDirection
+            ));
+        }
+
+        // Update displays and send controls when sliders change
+        throttleSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            throttleValue.textContent = `${value}%`;
+            updateVisualState('throttle', value);
+        });
+
+        throttleSlider.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            sendControl('throttle', value);
+        });
+
+        rudderSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            rudderValue.textContent = `${value}%`;
+            updateVisualState('rudder', value);
+        });
+
+        rudderSlider.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            sendControl('rudder', value);
+        });
+
+        sailsSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            sailsValue.textContent = `${value}%`;
+            updateVisualState('sails', value);
+        });
+
+        sailsSlider.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            sendControl('sails', value);
+        });
+
+        // Emergency stop button
+        emergencyStop.addEventListener('click', () => {
+            // Reset all sliders
+            throttleSlider.value = 0;
+            rudderSlider.value = 0;
+            sailsSlider.value = 0;
+            
+            // Reset all displays
+            throttleValue.textContent = '0%';
+            rudderValue.textContent = '0%';
+            sailsValue.textContent = '0%';
+            
+            // Update visual state
+            updateVisualState('rudder', 0);
+            updateVisualState('sails', 0);
+            
+            // Send emergency stop command
+            sendControl('emergency_stop', true);
+        });
+
+        // Update currentBoatState when we get new data
+        function updateCurrentBoatState(data) {
+            currentBoatState = {
+                heading: data.heading,
+                speed: data.speed,
+                movementDirection: data.movement_direction,
+                rudderAngle: data.rudder_angle,
+                sailPosition: data.sail_position
+            };
+        }
+
+        // Modify the fetch callback to update current state
+        const originalUpdateBoatPosition = updateBoatPosition;
+        updateBoatPosition = function() {
+            fetch('/api/boat-location')
+                .then(response => response.json())
+                .then(data => {
+                    updateCurrentBoatState(data);
+                    const position = [data.lat, data.lng];
+                    
+                    if (boatMarker === null) {
+                        boatMarker = L.marker(position, {
+                            icon: createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction)
+                        }).addTo(map);
+                        map.setView(position, 12);
+                    } else {
+                        boatMarker.setLatLng(position);
+                        boatMarker.setIcon(createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction));
+                    }
+
+                    // Update side panel information
+                    document.getElementById('heading-value').textContent = `${data.heading}°`;
+                    document.getElementById('speed-value').textContent = `${data.speed} knots`;
+                    document.getElementById('movement-value').textContent = `${data.movement_direction}°`;
+                    document.getElementById('rudder-info-value').textContent = `${data.rudder_angle}°`;
+                    document.getElementById('sails-info-value').textContent = `${data.sail_position}%`;
+                    document.getElementById('location-value').textContent = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
+
+                    // Update control values to match boat state
+                    document.getElementById('rudder').value = data.rudder_angle;
+                    document.getElementById('rudder-value').textContent = `${data.rudder_angle}%`;
+                    document.getElementById('sails').value = data.sail_position;
+                    document.getElementById('sails-value').textContent = `${data.sail_position}%`;
+                })
+                .catch(error => console.error('Error fetching boat location:', error));
+        };
+
+        // Environmental controls
+        const windSpeedSlider = document.getElementById('wind-speed');
+        const windDirectionSlider = document.getElementById('wind-direction');
+        const currentSpeedSlider = document.getElementById('current-speed');
+        const currentDirectionSlider = document.getElementById('current-direction');
+        const windSpeedValue = document.getElementById('wind-speed-value');
+        const windDirectionValue = document.getElementById('wind-direction-value');
+        const currentSpeedValue = document.getElementById('current-speed-value');
+        const currentDirectionValue = document.getElementById('current-direction-value');
+        const applyEnvironmentButton = document.getElementById('apply-environment');
+        
+        // Update displays when sliders change
+        windSpeedSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            windSpeedValue.textContent = `${value} knots`;
+        });
+        
+        windDirectionSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            windDirectionValue.textContent = `${value}°`;
+        });
+        
+        currentSpeedSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            currentSpeedValue.textContent = `${value} knots`;
+        });
+        
+        currentDirectionSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            currentDirectionValue.textContent = `${value}°`;
+        });
+        
+        // Apply environment button
+        applyEnvironmentButton.addEventListener('click', () => {
+            const environmentData = {
+                wind_speed: parseFloat(windSpeedSlider.value),
+                wind_direction: parseInt(windDirectionSlider.value),
+                current_speed: parseFloat(currentSpeedSlider.value),
+                current_direction: parseInt(currentDirectionSlider.value)
+            };
+            
+            // Send to server
+            fetch('/api/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    command: 'set_environment', 
+                    value: environmentData 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Environment updated:', data);
+            })
+            .catch(error => console.error('Error updating environment:', error));
+        });
+        
+        // Function to update environmental controls based on boat state
+        function updateEnvironmentControls(data) {
+            // Update sliders and displays if they exist in the data
+            if (data.wind_speed !== undefined) {
+                windSpeedSlider.value = data.wind_speed;
+                windSpeedValue.textContent = `${data.wind_speed} knots`;
+            }
+            
+            if (data.wind_direction !== undefined) {
+                windDirectionSlider.value = data.wind_direction;
+                windDirectionValue.textContent = `${data.wind_direction}°`;
+            }
+            
+            if (data.current_speed !== undefined) {
+                currentSpeedSlider.value = data.current_speed;
+                currentSpeedValue.textContent = `${data.current_speed} knots`;
+            }
+            
+            if (data.current_direction !== undefined) {
+                currentDirectionSlider.value = data.current_direction;
+                currentDirectionValue.textContent = `${data.current_direction}°`;
+            }
+        }
+        
+        // Modify the fetch callback to update environment controls and indicators
+        const originalUpdateBoatPosition = updateBoatPosition;
+        updateBoatPosition = function() {
+            fetch('/api/boat-location')
+                .then(response => response.json())
+                .then(data => {
+                    // Update environment controls
+                    updateEnvironmentControls(data);
+                    
+                    // Call the original function to update boat position and info
+                    const position = [data.lat, data.lng];
+                    
+                    if (boatMarker === null) {
+                        boatMarker = L.marker(position, {
+                            icon: createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction)
+                        }).addTo(map);
+                        map.setView(position, 12);
+                    } else {
+                        boatMarker.setLatLng(position);
+                        boatMarker.setIcon(createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction));
+                    }
+
+                    // Update wind and current indicators
+                    updateEnvironmentIndicators(
+                        position, 
+                        data.wind_speed, 
+                        data.wind_direction, 
+                        data.current_speed, 
+                        data.current_direction
+                    );
+
+                    // Update side panel information
+                    document.getElementById('heading-value').textContent = `${data.heading.toFixed(1)}°`;
+                    document.getElementById('speed-value').textContent = `${data.speed.toFixed(1)} knots`;
+                    document.getElementById('movement-value').textContent = `${data.movement_direction.toFixed(1)}°`;
+                    document.getElementById('rudder-info-value').textContent = `${data.rudder_angle}°`;
+                    document.getElementById('sails-info-value').textContent = `${data.sail_position}%`;
+                    document.getElementById('location-value').textContent = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
+
+                    // Update control values to match boat state
+                    document.getElementById('rudder').value = data.rudder_angle;
+                    document.getElementById('rudder-value').textContent = `${data.rudder_angle}%`;
+                    document.getElementById('sails').value = data.sail_position;
+                    document.getElementById('sails-value').textContent = `${data.sail_position}%`;
+                })
+                .catch(error => console.error('Error fetching boat location:', error));
+        };
+
+        // Initialize controls when page loads
+        initializeControls();
     </script>
 </body>
 </html> 

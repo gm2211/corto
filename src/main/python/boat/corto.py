@@ -4,7 +4,7 @@ from api.objects.nav_params.boat_attitude import BoatAttitude
 from api.objects.units.gps_coord import GPSCoord
 from comms.command_receiver import CommandReceiver
 from controls.boat_attitude_controller import BoatAttitudeController
-from controls.servos_controller import ServosController
+from controls.servos_factory import get_servos_controller
 from navigation.navigator import Navigator
 from telemetry.nav_params_recorder import NavParamsRecorder
 from telemetry.sensors.gps_locator import GPSLocator
@@ -30,7 +30,7 @@ class Corto:
 
 if __name__ == "__main__":
     nav_params_recorder = NavParamsRecorder()
-    servos_controller = ServosController()
+    servos_controller = get_servos_controller()
     boat_controller = BoatAttitudeController(servos_controller, nav_params_recorder)
     nav = Navigator(WindVane(), GPSLocator(), nav_params_recorder)
     radio = Radio()
