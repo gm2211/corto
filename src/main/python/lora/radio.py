@@ -50,10 +50,11 @@ class Radio:
         self.show_on_display(f"Sent: {message}")
 
     def show_on_display(self, message):
-        self.display.text(message, 0, 0, 1)
+        self.__clear_display()
+        self.display.text(str(message), 0, 0, 1)
         self.display.show()
 
-    def clear_display(self) -> None:
+    def __clear_display(self) -> None:
         self.display.fill(0)
         self.display.show()
 
@@ -71,3 +72,13 @@ class Radio:
         self.radio.send(bytes("setup", UTF_8), keep_listening=True)
 
         self.interrupt_initialized = True
+
+if __name__ == "__main__":
+  import time
+  radio = Radio()
+  radio.show_on_display("Display test..")
+  for i in range(5, 1, -1):
+    radio.show_on_display(i)
+    time.sleep(1)
+  radio.show_on_display("shutting down..") 
+  radio.show_on_display("")

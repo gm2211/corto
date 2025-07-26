@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from ..api.objects.nav_params.boat_attitude import BoatAttitude
-from ..api.objects.units.gps_coord import GPSCoord
+from api.objects.nav_params.boat_attitude import BoatAttitude
+from api.objects.units.gps_coord import GPSCoord
 from comms.command_receiver import CommandReceiver
 from controls.boat_attitude_controller import BoatAttitudeController
 from controls.servos_controller import ServosController
@@ -9,7 +9,7 @@ from navigation.navigator import Navigator
 from telemetry.nav_params_recorder import NavParamsRecorder
 from telemetry.sensors.gps_locator import GPSLocator
 from telemetry.sensors.wind_vane import WindVane
-from ..lora.radio import Radio
+from lora.radio import Radio
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Corto:
     boat_attitude_controller: BoatAttitudeController
     navigator: Navigator
     command_receiver: CommandReceiver
-    latest_boat_attitude: BoatAttitude | None = None
+    latest_boat_attitude: BoatAttitude = None
 
     def run_loop(self) -> None:
         dest: GPSCoord = self.command_receiver.get_cur_destination()
