@@ -6,8 +6,10 @@ This module provides functions to:
 3. Pass UI controls to the simulator
 """
 
-from api.objects.units.percent import Percent
-from simulator.simulator import get_simulator
+import ultraimport
+
+Percent = ultraimport("__dir__/../api/objects/units/percent.py", ["Percent"])[0]
+get_simulator = ultraimport("__dir__/simulator.py", ["get_simulator"])[0]
 
 
 # Dictionary to map app.py boat_state to simulator parameters

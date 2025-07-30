@@ -6,16 +6,32 @@ authors = ["gm2211 <gmecocci@outlook.com>"]
 readme = "README.md"
 package-mode = false
 
-[tool.poetry.dependencies]
-python = "3.11.*"
-pyformance = "^0.4"
-flask = "^3.1.1"
-
 [tool.poetry.group.rpi.dependencies]
 inventorhatmini = {version = "^1.0.0", platform = "linux"}
 pimoroni-ioexpander = {version = "^1.0.1", platform = "linux"}
 "RPi.GPIO" = {version = "^0.7.1", platform = "linux"}
 
+[tool.poetry.dependencies]
+pyformance = "^0.4"
+flask = "^3.1.1"
+python = "^3.11.9"
+click = "*"
+jinja2 = "*"
+six = "*"
+werkzeug = "*"
+ultraimport = "^0.1.0"
+
 [build-system]
 requires = ["poetry-core>=1.9.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+app = "app.app:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src/main/python"]
+
+# This helps IDE tools like PyCharm recognize the correct source root
+[tool.pyright]
+includePatterns = ["src/main/python/**/*"]
+root = "src/main/python"

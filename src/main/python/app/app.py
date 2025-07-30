@@ -1,11 +1,18 @@
 from flask import Flask, render_template, jsonify, request
 import threading
 import time
+import ultraimport
 
-# Do not use relative imports, use absolute imports with PYTHONPATH
-# The run.sh script sets PYTHONPATH to src/main/python
-
-from simulator.simulator_integration import initialize_simulator, update_app_boat_state, process_control_command
+# Using ultraimport for importing modules relative to this file's location
+(
+    initialize_simulator,
+    update_app_boat_state,
+    process_control_command
+) = ultraimport("__dir__/../simulator/simulator_integration.py", [
+    "initialize_simulator",
+    "update_app_boat_state",
+    "process_control_command"
+])
 
 app = Flask(__name__)
 

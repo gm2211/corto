@@ -2,15 +2,16 @@ from typing import Dict, Any, Optional, NamedTuple
 import threading
 import time
 import math
+import ultraimport
 
-# Import dataclasses from api.objects with absolute imports
-from api.objects.units.angle import Angle
-from api.objects.units.percent import Percent
-from api.objects.units.gps_coord import GPSCoord
-from api.objects.units.speed import Speed
-from api.objects.units.rudder_position import RudderPosition as OriginalRudderPosition
-from api.objects.nav_params.boat_attitude import BoatAttitude as OriginalBoatAttitude
-from api.objects.nav_params.nav_params import NavParams
+# Import dataclasses from api.objects with relative imports using ultraimport
+Angle = ultraimport("__dir__/../api/objects/units/angle.py", ["Angle"])[0]
+Percent = ultraimport("__dir__/../api/objects/units/percent.py", ["Percent"])[0]
+GPSCoord = ultraimport("__dir__/../api/objects/units/gps_coord.py", ["GPSCoord"])[0]
+Speed = ultraimport("__dir__/../api/objects/units/speed.py", ["Speed"])[0]
+OriginalRudderPosition = ultraimport("__dir__/../api/objects/units/rudder_position.py", ["RudderPosition"])[0]
+OriginalBoatAttitude = ultraimport("__dir__/../api/objects/nav_params/boat_attitude.py", ["BoatAttitude"])[0]
+NavParams = ultraimport("__dir__/../api/objects/nav_params/nav_params.py", ["NavParams"])[0]
 
 
 # Adapter class for RudderPosition to match the simulator's expectations
