@@ -16,8 +16,8 @@ pyenv virtualenv 3.11.8 corto
 pyenv activate corto
 curl -sSL https://install.python-poetry.org | python3 -
 pip install --upgrade adafruit-blinka
-pip install inventorhatmini
-pip install RPi.GPIO
+pip install "inventorhatmini>=1.0.0"
+pip install rpi-lgpio
 sudo raspi-config nonint do_i2c 0
 pip install adafruit-circuitpython-busdevice
 pip install adafruit-circuitpython-ssd1306
