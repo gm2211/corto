@@ -27,6 +27,7 @@ from flask import Flask, render_template, jsonify, request
 app = Flask(__name__)
 # The UI is plain static files that change while developing: do not let the browser cache them.
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 simulator = initialize_simulator()
 
