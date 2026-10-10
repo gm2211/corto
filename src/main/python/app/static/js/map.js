@@ -28,7 +28,7 @@
 
     let map, boatMarker, boatRot, boomEl, sailEl, sailHaloEl, rudderEl;
     let wakeRenderer, wakePolys = [], wakePts = [], lastWakeDraw = 0;
-    let courseSig = '', markMarkers = [], legLines = [], activeRing = null, approach = null, approachUp = false;
+    let courseSig = '', markMarkers = [], legLines = [], activeRing = null, approach = null, approachHit = null, approachUp = false;
     let following = false, editing = false, draggingMark = false, sailSign = 1;
     let opts = {};
     let railEl = null;
@@ -180,6 +180,7 @@
         markMarkers = []; legLines = [];
         if (activeRing) { map.removeLayer(activeRing); activeRing = null; }
         if (approach) { map.removeLayer(approach); approach = null; }
+        if (approachHit) { map.removeLayer(approachHit); approachHit = null; }
     }
 
     function tipFor(line) {
@@ -197,7 +198,14 @@
         if (!marks.length) return;
 
         const ll = marks.map(m => [m.lat, m.lng]);
+        // A two-mark loop sails the same line both ways: draw it once, red if either direction is upwind
+        const byLine = {};
         (course.legs || []).forEach(function (leg) {
+            const key = Math.min(leg.from, leg.to) + '-' + Math.max(leg.from, leg.to);
+            if (!byLine[key]) byLine[key] = Object.assign({}, leg);
+            else byLine[key].upwind = byLine[key].upwind || leg.upwind;
+        });
+        Object.keys(byLine).map(k => byLine[k]).forEach(function (leg) {
             const pts = [ll[leg.from], ll[leg.to]];
             const up = !!leg.upwind;
             const line = L.polyline(pts, {
@@ -238,19 +246,27 @@
         const target = state.to_mark && state.course.marks[state.to_mark.index];
         if (!show || !target) {
             if (approach) { map.removeLayer(approach); approach = null; }
+            if (approachHit) { map.removeLayer(approachHit); approachHit = null; }
             return;
         }
         const up = !!state.to_mark.upwind;
+        const pts = [ll, [target.lat, target.lng]];
         if (!approach || approachUp !== up) {
             if (approach) map.removeLayer(approach);
-            approach = L.polyline([ll, [target.lat, target.lng]], {
+            if (approachHit) { map.removeLayer(approachHit); approachHit = null; }
+            approach = L.polyline(pts, {
                 color: up ? COLORS.port : COLORS.mark, weight: up ? 2.6 : 1.8, opacity: up ? 0.95 : 0.65,
-                dashArray: up ? '3 8' : '2 7', className: up ? 'leg leg-upwind leg-approach' : 'leg leg-approach'
+                dashArray: up ? '3 8' : '2 7', interactive: false, className: up ? 'leg leg-upwind leg-approach' : 'leg leg-approach'
             }).addTo(map);
-            if (up) tipFor(approach);
+            if (up) {
+                // The boat moves, so give the dashed line a fat invisible twin that is easy to hover
+                approachHit = L.polyline(pts, { color: '#000', weight: 18, opacity: 0, className: 'leg-hit leg-upwind-hit' }).addTo(map);
+                tipFor(approachHit);
+            }
             approachUp = up;
         } else {
-            approach.setLatLngs([ll, [target.lat, target.lng]]);
+            approach.setLatLngs(pts);
+            if (approachHit) approachHit.setLatLngs(pts);
         }
     }
 

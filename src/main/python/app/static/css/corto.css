@@ -40,6 +40,9 @@ html, body {
 
 button { font: inherit; color: inherit; }
 input[type="range"] { accent-color: var(--true); }
+button:focus-visible, summary:focus-visible, input:focus-visible, .chip:focus-visible {
+    outline: 2px solid var(--true); outline-offset: 2px;
+}
 kbd {
     font: inherit; font-size: 10px; padding: 0 4px; border: 1px solid var(--line-strong); border-radius: 4px;
     color: var(--muted); margin-left: 2px;
