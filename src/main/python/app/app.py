@@ -1,117 +1,55 @@
-"""Flask web application for controlling and monitoring a boat simulator."""
+"""Flask web application for controlling and monitoring the Corto boat simulator."""
 
-import threading
-import time
+import argparse
+
 import ultraimport
 from flask import Flask, render_template, jsonify, request
 
 # Using ultraimport for importing modules relative to this file's location
 (
     initialize_simulator,
-    update_app_boat_state,
-    process_control_command
+    get_boat_state,
+    apply_control_request,
+    set_course,
+    clear_course,
+    set_demo_course,
+    reset_simulation,
 ) = ultraimport("__dir__/../simulator/simulator_integration.py", [
     "initialize_simulator",
-    "update_app_boat_state",
-    "process_control_command"
+    "get_boat_state",
+    "apply_control_request",
+    "set_course",
+    "clear_course",
+    "set_demo_course",
+    "reset_simulation",
 ])
 
 app = Flask(__name__)
+# The UI is plain static files that change while developing: do not let the browser cache them.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+simulator = initialize_simulator()
 
 
-class BoatController:
-    """Controller class to manage boat state and simulator interactions."""
-
-    def __init__(self):
-        """Initialize the boat controller with simulator and initial state."""
-        self.simulator = initialize_simulator()
-        self.boat_state = {
-            "lat": 40.7450,  # New York Harbor coordinates (in main shipping channel)
-            "lng": -74.0150,
-            "heading": 0,  # Direction boat is pointing (degrees)
-            "speed": 0,  # Speed through water (knots)
-            "rudder_angle": 0,  # Rudder position (-100 to 100)
-            "sail_position": 0,  # Sail position (0 to 100)
-            "throttle": 0,  # Motor throttle (-100 to 100)
-            "wind_speed": 10,  # Wind speed in knots
-            "wind_direction": 45,  # Wind direction in degrees
-            "current_speed": 0,  # Water current speed in knots
-            "current_direction": 90,  # Water current direction in degrees
-            "turn_rate": 0,  # Rate of turn in degrees per second
-            "drift_angle": 0,  # Angle between heading and actual movement
-            "movement_direction": 0  # Actual movement direction
-        }
-
-        # Set initial environmental factors in the simulator
-        self.simulator.set_environmental_factors(
-            self.boat_state["wind_speed"],
-            self.boat_state["wind_direction"],
-            self.boat_state["current_speed"],
-            self.boat_state["current_direction"]
-        )
-
-    def get_state(self):
-        """Get a copy of the current boat state."""
-        return self.boat_state.copy()
-
-    def update_state_from_simulator(self):
-        """Update boat state from simulator."""
-        self.boat_state = update_app_boat_state(self.boat_state, self.simulator)
-
-    def process_command(self, command, value):
-        """Process a control command and update state if needed."""
-        print(f"Processing command: {command}, Value: {value}")
-
-        # Pass the command to the simulator
-        process_control_command(command, value, self.simulator)
-
-        # For environmental factor updates, update the local boat_state as well
-        if command == 'set_environment':
-            if isinstance(value, dict):
-                # Create a copy to modify
-                updated_state = self.boat_state.copy()
-                for key, val in value.items():
-                    if key in updated_state:
-                        updated_state[key] = val
-
-                # Update the state
-                self.boat_state = updated_state
-
-                # Update the simulator with the new environmental factors
-                self.simulator.set_environmental_factors(
-                    self.boat_state["wind_speed"],
-                    self.boat_state["wind_direction"],
-                    self.boat_state["current_speed"],
-                    self.boat_state["current_direction"]
-                )
+def _json_body():
+    """The request's JSON object, or an empty dict. Raises ValueError if the body is not an object."""
+    data = request.get_json(silent=True)
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise ValueError("expected a JSON object")
+    return data
 
 
-# Initialize the boat controller
-boat_controller = BoatController()
+def _ok(**extra):
+    return jsonify({"status": "success", **extra, "state": get_boat_state(simulator)})
 
 
-# Start a background thread to periodically update the boat state from the simulator
-def update_boat_state_thread():
-    """Background thread to continuously update boat state from simulator."""
-    while True:
-        boat_controller.update_state_from_simulator()
-        time.sleep(0.1)  # Update 10 times per second
-
-
-update_thread = threading.Thread(target=update_boat_state_thread)
-update_thread.daemon = True
-update_thread.start()
-
-
-def get_boat_state():
-    """Get the current state of the boat."""
-    return boat_controller.get_state()
-
-
-def update_boat_state(command, value):
-    """Update the boat state based on control inputs by passing them to the simulator."""
-    boat_controller.process_command(command, value)
-    # The boat state will be updated by the background thread
+@app.errorhandler(ValueError)
+def _bad_request(error):
+    """Invalid input from the network is a 400, never a 500."""
+    return jsonify({"status": "error", "message": str(error)}), 400
 
 
 @app.route('/')
@@ -120,35 +58,67 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/api/boat-location')
-def boat_location():
-    """API endpoint to get current boat location and state."""
-    return jsonify(get_boat_state())
+@app.route('/api/state')
+@app.route('/api/boat-location')  # kept as an alias for the old name
+def state():
+    """Boat telemetry, mode and course. Polled by the UI at 10 Hz."""
+    return jsonify(get_boat_state(simulator))
 
 
 @app.route('/api/control', methods=['POST'])
 def control():
-    """API endpoint to process boat control commands."""
-    data = request.get_json()
-    if not data:
+    """Boat controls. Body: {command, value} (rudder -100..100, sails 0..100, throttle 0..100,
+    emergency_stop, set_environment) and/or {mode: manual|auto, running, auto_trim, time_scale}."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data:
         return jsonify({"status": "error", "message": "No JSON data provided"}), 400
+    apply_control_request(simulator, data)
+    return _ok()
 
-    command = data.get('command')
-    value = data.get('value')
 
-    update_boat_state(command, value)
-    print(f"Received command: {command} with value: {value}")
-    print(f"Updated boat state: {get_boat_state()}")
+@app.route('/api/course', methods=['POST'])
+def course_set():
+    """Replace the course. Body: {marks: [{lat, lng}, ...], loop?, active?}."""
+    data = _json_body()
+    if 'marks' not in data:
+        raise ValueError("marks is required")
+    set_course(simulator, data['marks'], data.get('loop'), data.get('active', 0))
+    return _ok()
 
-    return jsonify({"status": "success", "message": f"Command {command} executed"})
+
+@app.route('/api/course', methods=['DELETE'])
+def course_clear():
+    """Remove every mark (and stop the autopilot)."""
+    clear_course(simulator)
+    return _ok()
+
+
+@app.route('/api/course/demo', methods=['POST'])
+def course_demo():
+    """Replace the course with the demo triangle, laid out from the boat and rotated to the wind."""
+    data = _json_body()
+    set_demo_course(simulator, data.get('scale'))
+    return _ok()
+
+
+@app.route('/api/reset', methods=['POST'])
+def reset():
+    """Put the boat back at the start (or {lat, lng, heading?}) at rest, with neutral controls."""
+    data = _json_body()
+    reset_simulation(simulator, data.get('lat'), data.get('lng'), data.get('heading'))
+    return _ok()
+
+
+def main(argv=None):
+    """Run the simulator UI: `python src/main/python/app/app.py --port 5000`."""
+    parser = argparse.ArgumentParser(description='Run the Corto boat simulator app')
+    parser.add_argument('--host', default='127.0.0.1', help='Interface to bind (default: 127.0.0.1)')
+    parser.add_argument('--port', type=int, default=5000, help='Port to run the app on (default: 5000)')
+    args = parser.parse_args(argv)
+
+    # use_reloader=False: the reloader would start a second process (and a second simulator thread)
+    app.run(host=args.host, port=args.port, debug=False, use_reloader=False, threaded=True)
 
 
 if __name__ == '__main__':
-    import argparse
-
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Run the Corto boat simulator app')
-    parser.add_argument('--port', type=int, default=5000, help='Port to run the app on')
-    args = parser.parse_args()
-
-    app.run(debug=True, port=args.port)
+    main()

@@ -1,96 +1,98 @@
 # Corto Boat Simulator
 
-This simulator allows you to visualize and test the behavior of the Corto boat control system in a simulated environment. It provides a web-based UI for controlling the boat and visualizing its behavior based on environmental factors like wind and current.
+A web simulator for the Corto boat. It runs a small sailing-physics model behind a Flask app and a sailing-instrument UI, and it can sail a course of marks with **the boat's own `Navigator`** (`src/main/python/boat/navigation/navigator.py`) steering the simulated rudder and sheet, so the navigation code can be exercised without a boat.
 
-## Features
+![The simulator rounding the demo course](../../../../docs/simulator/simulator-demo.gif)
 
-- Real-time visualization of boat position, heading, and movement
-- Controls for rudder, sails, and motor throttle
-- Simulated environmental factors (wind speed/direction, current speed/direction)
-- Visual indicators for wind and current on the map
-- Real-time telemetry display
+## Run it
 
-## Architecture
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install flask ultraimport            # the simulator needs nothing else (pytest for the tests)
+python src/main/python/app/app.py --port 5000 [--host 127.0.0.1]
+```
 
-The simulator consists of several components:
+Open <http://127.0.0.1:5000>. (On macOS port 5000 is often taken by AirPlay Receiver: pick another with `--port`.)
 
-1. **Simulator Core** (`simulator.py`): Implements the physics model and simulated sensors
-   - Simulated sensors (WindVane, GPSLocator)
-   - Simulated controllers (ServosController)
-   - Physics model for boat movement
-   - Background thread for continuous simulation
+**Demo:** <http://127.0.0.1:5000/?demo=1&warp=15> resets the boat, loads the demo course, starts the autopilot, follows the boat at zoom 18 and hides the hints. With wind from 225 degrees at 12 knots the autopilot rounds the three marks after about 14, 20 and 34 seconds at 15x (add `&scale=1` for the 1x-size course: about 10, 14 and 22 seconds).
 
-2. **Integration Layer** (`simulator_integration.py`): Connects the simulator to the Flask app
-   - Initializes the simulator
-   - Updates the boat state based on simulator output
-   - Passes UI controls to the simulator
+URL parameters: `demo=1`, `warp=N` (1..30), `scale=S` (demo course size, default 1.5), `zoom=N`, `follow=1`, `hints=0`.
 
-3. **Web UI** (`app.py` and `templates/index.html`): Provides the user interface
-   - Interactive map for visualization
-   - Control panel for boat controls
-   - Environmental controls for wind and current
-   - Real-time telemetry display
+## The UI
 
-## How It Works
+| Area | What it is |
+|---|---|
+| Top bar | **Manual / Autopilot** switch, a wind chip that opens the environment popover (wind speed and direction, current speed and direction; changes apply live), **1x / 5x / 15x** time warp, and a live dot. |
+| Map | OpenStreetMap, muted so the boat and course stand out, plus the OpenSeaMap seamark overlay and a metric scale bar. The boat is a persistent SVG hull rotated with a CSS transform, with its boom swung to leeward by the sheet setting. The wake is about 90 s of sim time drawn as a fading polyline. |
+| Instrument rail | A 240 px heading-up wind/compass dial (true wind in cyan, apparent wind in amber, red/green close-hauled sectors, an orange tick for the bearing to the active mark), tiles for HDG, SOG, HEEL (est.), TWS/TWA, AWS/AWA and distance/bearing to the mark, a centred **rudder bar** (+/-45 degrees, red to port, green to starboard) and a **sheet bar** with an optimal-trim marker and a state word (TRIMMED / LUFFING / OVER-TRIMMED). |
+| Control dock | Manual: rudder slider (-100..100, double-click to centre), sheet slider with the optimal marker and an **Auto-trim** checkbox, a collapsed motor slider. Autopilot: click the map to add marks, drag a mark to move it, mark chips with an x, **Demo course**, **Start / Pause**, **Clear** and a **Loop** toggle. **Stop** centres the rudder, zeroes the sheet and motor, and switches to manual. |
 
-1. The simulator runs in a background thread, continuously updating the boat's state based on:
-   - Control inputs (rudder, sails, throttle)
-   - Environmental factors (wind, current)
-   - Physics calculations (speed, heading, position)
+Keyboard: left / right arrows change the rudder by 10, up / down change the sheet by 5, **F** toggles the follow camera.
 
-2. The Flask app periodically fetches the boat's state from the simulator and updates the UI.
+Dashed lines are the course. A leg that points closer than 45 degrees to the wind is drawn **red** with the tooltip "Upwind leg: navigator can't tack yet".
 
-3. User inputs from the UI are sent to the simulator via API calls, which then affect the boat's behavior.
+## How it works
 
-## Physics Model
+```
+ browser  <--- 10 Hz poll of GET /api/state, POST /api/control ...  --->  app/app.py (Flask)
+                                                                            |
+                                                         simulator/simulator_integration.py
+                                                                            |
+        simulator/autopilot.py  --- Navigator.compute_boat_attitude ---> simulated servos
+                                                                            |
+        simulator/simulator.py  <--- rudder / sheet / throttle ----------  BoatPhysicsSimulator (background thread)
+```
 
-The simulator includes a simplified physics model that accounts for:
+* `simulator.py` has the simulated wind vane, GPS, servos and nav-params recorder (they implement the same methods the real drivers do) and `BoatPhysicsSimulator`.
+* `autopilot.py` has `Course` (marks, active mark, loop, 15 m arrival radius, upwind flag, demo triangle) and `SimAutopilot`, which feeds the Navigator the simulated sensors and applies its attitude to the servos exactly like `Corto.run_loop` does on the boat. Modes: manual, manual + auto-trim (the Navigator trims the sheet, you steer) and autopilot.
+* `simulator_integration.py` validates and clamps everything that comes from the network; bad input is a 400, never a 500.
 
-- Wind effects on sail propulsion (best speed at ~120° apparent wind angle)
-- Rudder effects on turning rate (more speed = more responsive turning)
-- Drift due to rudder angle and speed
-- Current effects on actual movement
-- Motor propulsion
+### Conventions
 
-## How to Use
+* Rudder servo: Percent **0 = full left, 50 = centre, 100 = full right** (the real boat's `RudderPosition`). Physics and the UI use the signed value `(pct - 50) * 2`, -100..100; positive is starboard and makes the heading increase. The rudder angle shown is the signed value x 45 degrees.
+* Sail servo: 0 = eased, 100 = sheeted in. The Navigator asks for 100 at 45 degrees to the wind and 0 at 135 degrees.
+* Wind direction is where the wind comes **from**; current direction is where the water flows **to**. True and apparent wind angles are positive when the wind comes over the starboard side.
 
-1. Start the Flask app:
-   ```
-   python src/main/python/app/app.py
-   ```
+### Physics model
 
-2. Open a web browser and navigate to:
-   ```
-   http://localhost:5000
-   ```
+Constants are at the top of `simulator.py`.
 
-3. Use the controls in the UI:
-   - **Rudder**: Controls the boat's turning (-100% to 100%)
-   - **Sails**: Controls the sail trim (0% to 100%)
-   - **Throttle**: Controls the motor (-100% to 100%)
-   - **Emergency Stop**: Resets all controls to zero
+| Part | Model |
+|---|---|
+| Time | The simulation runs `SIM_TIME_SCALE = 15` times faster than the clock (1..30, set by the warp buttons), in sub-steps of at most 0.4 s; the autopilot runs before every sub-step. |
+| Drive | `tws x polar(twa) x trim_match x 0.4` knots. The true wind angle is folded to 0..180 degrees so both tacks work; `polar = 1 - abs(twa - 120) / 120` and zero below `NO_GO_DEG = 30`. `trim_match = max(0, 1 - abs(trim - optimal) / 60)` where `optimal` is the Navigator's own mapping (45 degrees -> 100, 135 degrees -> 0). The motor adds up to 5 knots. |
+| Momentum | Boat speed relaxes to its target with `MOMENTUM_TAU_S = 8` s. |
+| Steering | `TURN_DEG_S_AT_5KN = 12` degrees per second at full rudder and 5 knots, proportional to rudder and speed, with a floor of `MIN_STEERAGE_KN = 0.6` so a stalled boat can still turn. |
+| Position | In metres with a cos(latitude) correction: `dlat = v dt / 111320`, `dlon = v dt / (111320 cos(lat))`. The current is added to give SOG and COG. |
+| Apparent wind | `apparent_wind(tws, twd, stw, hdg) -> (aws, awa)` by vector subtraction. |
+| Heel | An estimate, `min(30, 0.15 aws^2 abs(sin awa) trim / 100)` degrees to leeward. It is labelled "est." because it is not a hydrodynamic model. |
 
-4. Set environmental factors:
-   - **Wind Speed**: 0-30 knots
-   - **Wind Direction**: 0-359 degrees
-   - **Current Speed**: 0-5 knots
-   - **Current Direction**: 0-359 degrees
-   - Click **Apply Environment** to update the simulation
+The default start is `DEFAULT_START = (43.6545, -70.2230)` (open water in Casco Bay, ME) on heading 315.
 
-5. Observe the boat's behavior on the map and in the telemetry display.
+### No tacking yet
 
-## Extending the Simulator
+The Navigator steers straight at the active mark. A mark that is (nearly) upwind cannot be reached without tacking, so the boat ends up in irons. Upwind legs are **flagged and warned about, not handled**. Tacking is future work.
 
-To extend the simulator with additional features:
+## HTTP API
 
-1. **Add new sensors**: Create new simulated sensor classes in `simulator.py`
-2. **Enhance the physics model**: Modify the `_update_physics` method in `BoatPhysicsSimulator`
-3. **Add new UI controls**: Update the HTML template and add corresponding JavaScript handlers
-4. **Add new environmental factors**: Add new parameters to `set_environmental_factors` and update the physics calculations
+| Endpoint | |
+|---|---|
+| `GET /api/state` (alias `/api/boat-location`) | Telemetry (`heading cog sog stw tws twd twa aws awa heel rudder rudder_deg trim opt_trim throttle drift lat lng ...`), `mode`, `running`, `auto_trim`, `time_scale`, the `course` (marks, active mark, legs with an `upwind` flag) and `to_mark`. |
+| `POST /api/control` | `{command, value}` with `rudder` (-100..100), `sails` (0..100), `throttle` (0..100), `emergency_stop` or `set_environment`; and/or `{mode: "manual"\|"auto", running, auto_trim, time_scale}`. Numbers are clamped. |
+| `POST /api/course` | `{marks: [{lat, lng}], loop?, active?}` replaces the course. `DELETE /api/course` clears it. |
+| `POST /api/course/demo` | `{scale?}` lays the demo triangle out from the boat and rotates it to the wind. |
+| `POST /api/reset` | `{lat?, lng?, heading?}` puts the boat back at rest with neutral controls. |
+
+## Tests
+
+```bash
+pip install pytest && pytest
+```
+
+`src/test/python` covers the Navigator (right gives more than 50, left gives less than 50, a 1 degree deadband, proportional response, sail trim unchanged), the physics (port and starboard beam reaches match, the rudder turns both ways, no drive below 30 degrees, 100 m east is 100 m by haversine, apparent wind), the course (marks advance, the course loops, upwind legs are flagged), the autopilot lap, and the HTTP API.
 
 ## Limitations
 
-- The physics model is simplified and does not account for all real-world factors
-- Earth's curvature is not considered in position calculations
-- Wind and current are uniform across the entire map
-- No obstacles or landmasses are considered in the simulation
+* No tacking (see above), and no obstacles or land: the boat can sail over islands.
+* One uniform wind and current for the whole map. The physics is simplified on purpose; use it to exercise the navigation code, not to predict boat speed.
+* The real boat's rudder direction (which way the servo moves for a given `RudderPosition`) must be bench-tested before the fixed Navigator runs on hardware.
