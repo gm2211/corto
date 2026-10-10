@@ -427,13 +427,30 @@
         // Initialize boat marker
         var boatMarker = null;
 
-        // Function to update boat position and information
+        // Keep track of current boat state (used to redraw the boat icon between polls)
+        let currentBoatState = {
+            heading: 0,
+            speed: 0,
+            movementDirection: 0,
+            rudderAngle: 0,
+            sailPosition: 0
+        };
+        let environmentControlsSynced = false;
+
+        // Function to update boat position and information. Defined exactly once.
         function updateBoatPosition() {
             fetch('/api/boat-location')
                 .then(response => response.json())
                 .then(data => {
+                    currentBoatState = {
+                        heading: data.heading,
+                        speed: data.speed,
+                        movementDirection: data.movement_direction,
+                        rudderAngle: data.rudder_angle,
+                        sailPosition: data.sail_position
+                    };
                     const position = [data.lat, data.lng];
-                    
+
                     if (boatMarker === null) {
                         boatMarker = L.marker(position, {
                             icon: createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction)
@@ -444,26 +461,38 @@
                         boatMarker.setIcon(createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction));
                     }
 
+                    // Seed the environment sliders from the server once; after that the user owns them
+                    if (!environmentControlsSynced) {
+                        updateEnvironmentControls(data);
+                        environmentControlsSynced = true;
+                    }
+
+                    // Update wind and current indicators
+                    updateEnvironmentIndicators(
+                        position,
+                        data.wind_speed,
+                        data.wind_direction,
+                        data.current_speed,
+                        data.current_direction
+                    );
+
                     // Update side panel information
-                    document.getElementById('heading-value').textContent = `${data.heading}°`;
-                    document.getElementById('speed-value').textContent = `${data.speed} knots`;
-                    document.getElementById('movement-value').textContent = `${data.movement_direction}°`;
+                    document.getElementById('heading-value').textContent = `${data.heading.toFixed(1)}°`;
+                    document.getElementById('speed-value').textContent = `${data.speed.toFixed(1)} knots`;
+                    document.getElementById('movement-value').textContent = `${data.movement_direction.toFixed(1)}°`;
                     document.getElementById('rudder-info-value').textContent = `${data.rudder_angle}°`;
                     document.getElementById('sails-info-value').textContent = `${data.sail_position}%`;
                     document.getElementById('location-value').textContent = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
 
-                    // Update control values to match boat state
-                    document.getElementById('rudder').value = data.rudder_angle;
-                    document.getElementById('rudder-value').textContent = `${data.rudder_angle}%`;
-                    document.getElementById('sails').value = data.sail_position;
-                    document.getElementById('sails-value').textContent = `${data.sail_position}%`;
+                    // The control sliders are NOT overwritten with server values: the user's
+                    // slider position is the source of truth while they are dragging.
                 })
                 .catch(error => console.error('Error fetching boat location:', error));
         }
 
-        // Update boat position immediately and every 5 seconds
+        // Update boat position immediately, then poll at 5 Hz
         updateBoatPosition();
-        setInterval(updateBoatPosition, 5000);
+        setInterval(updateBoatPosition, 200);
 
         // Control panel functionality
         const throttleSlider = document.getElementById('throttle');
@@ -539,15 +568,6 @@
             document.getElementById('sails-info-value').textContent = "0%";
             document.getElementById('location-value').textContent = "-";
         }
-
-        // Keep track of current boat state
-        let currentBoatState = {
-            heading: 0,
-            speed: 0,
-            movementDirection: 0,
-            rudderAngle: 0,
-            sailPosition: 0
-        };
 
         // Function to send control commands
         function sendControl(command, value) {
@@ -640,52 +660,6 @@
             sendControl('emergency_stop', true);
         });
 
-        // Update currentBoatState when we get new data
-        function updateCurrentBoatState(data) {
-            currentBoatState = {
-                heading: data.heading,
-                speed: data.speed,
-                movementDirection: data.movement_direction,
-                rudderAngle: data.rudder_angle,
-                sailPosition: data.sail_position
-            };
-        }
-
-        // Modify the fetch callback to update current state
-        const originalUpdateBoatPosition = updateBoatPosition;
-        updateBoatPosition = function() {
-            fetch('/api/boat-location')
-                .then(response => response.json())
-                .then(data => {
-                    updateCurrentBoatState(data);
-                    const position = [data.lat, data.lng];
-                    
-                    if (boatMarker === null) {
-                        boatMarker = L.marker(position, {
-                            icon: createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction)
-                        }).addTo(map);
-                        map.setView(position, 12);
-                    } else {
-                        boatMarker.setLatLng(position);
-                        boatMarker.setIcon(createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction));
-                    }
-
-                    // Update side panel information
-                    document.getElementById('heading-value').textContent = `${data.heading}°`;
-                    document.getElementById('speed-value').textContent = `${data.speed} knots`;
-                    document.getElementById('movement-value').textContent = `${data.movement_direction}°`;
-                    document.getElementById('rudder-info-value').textContent = `${data.rudder_angle}°`;
-                    document.getElementById('sails-info-value').textContent = `${data.sail_position}%`;
-                    document.getElementById('location-value').textContent = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
-
-                    // Update control values to match boat state
-                    document.getElementById('rudder').value = data.rudder_angle;
-                    document.getElementById('rudder-value').textContent = `${data.rudder_angle}%`;
-                    document.getElementById('sails').value = data.sail_position;
-                    document.getElementById('sails-value').textContent = `${data.sail_position}%`;
-                })
-                .catch(error => console.error('Error fetching boat location:', error));
-        };
 
         // Environmental controls
         const windSpeedSlider = document.getElementById('wind-speed');
@@ -770,53 +744,6 @@
             }
         }
         
-        // Modify the fetch callback to update environment controls and indicators
-        const originalUpdateBoatPosition = updateBoatPosition;
-        updateBoatPosition = function() {
-            fetch('/api/boat-location')
-                .then(response => response.json())
-                .then(data => {
-                    // Update environment controls
-                    updateEnvironmentControls(data);
-                    
-                    // Call the original function to update boat position and info
-                    const position = [data.lat, data.lng];
-                    
-                    if (boatMarker === null) {
-                        boatMarker = L.marker(position, {
-                            icon: createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction)
-                        }).addTo(map);
-                        map.setView(position, 12);
-                    } else {
-                        boatMarker.setLatLng(position);
-                        boatMarker.setIcon(createBoatIcon(data.heading, data.rudder_angle, data.speed, data.movement_direction));
-                    }
-
-                    // Update wind and current indicators
-                    updateEnvironmentIndicators(
-                        position, 
-                        data.wind_speed, 
-                        data.wind_direction, 
-                        data.current_speed, 
-                        data.current_direction
-                    );
-
-                    // Update side panel information
-                    document.getElementById('heading-value').textContent = `${data.heading.toFixed(1)}°`;
-                    document.getElementById('speed-value').textContent = `${data.speed.toFixed(1)} knots`;
-                    document.getElementById('movement-value').textContent = `${data.movement_direction.toFixed(1)}°`;
-                    document.getElementById('rudder-info-value').textContent = `${data.rudder_angle}°`;
-                    document.getElementById('sails-info-value').textContent = `${data.sail_position}%`;
-                    document.getElementById('location-value').textContent = `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
-
-                    // Update control values to match boat state
-                    document.getElementById('rudder').value = data.rudder_angle;
-                    document.getElementById('rudder-value').textContent = `${data.rudder_angle}%`;
-                    document.getElementById('sails').value = data.sail_position;
-                    document.getElementById('sails-value').textContent = `${data.sail_position}%`;
-                })
-                .catch(error => console.error('Error fetching boat location:', error));
-        };
 
         // Initialize controls when page loads
         initializeControls();
