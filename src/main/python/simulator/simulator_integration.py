@@ -10,7 +10,7 @@ Rudder convention (same as the real boat's RudderPosition): the servo takes a Pe
 """
 
 import math
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import ultraimport
 

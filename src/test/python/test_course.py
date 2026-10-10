@@ -3,7 +3,7 @@ import pytest
 
 from api.objects.units.percent import Percent
 from simulator.autopilot import ARRIVAL_RADIUS_M, Course, SimAutopilot
-from simulator.geo import bearing_deg, distance_m, fold180, haversine_m, offset
+from simulator.geo import fold180, haversine_m, offset
 from simulator.simulator import DEFAULT_START, build_simulator
 
 WIND_FROM = 225.0
