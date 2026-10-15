@@ -6,15 +6,11 @@ import pytest
 
 @pytest.fixture()
 def client():
+    # Imported here, not at module level: app.app loads simulator/simulator.py with ultraimport, which registers it
+    # as sys.modules["simulator"] and would shadow the simulator package for the test modules collected after this one
     module = importlib.import_module("app.app")
-    simulator = module.simulator
-    # Deterministic: park the background physics thread's effect by resetting before and after each test
-    module.reset_simulation(simulator)
-    simulator.set_environmental_factors(12.0, 225.0, 0.0, 90.0)
-    simulator.autopilot.course.clear()
-    yield module.app.test_client()
-    module.reset_simulation(simulator)
-    simulator.autopilot.course.clear()
+    # A fresh simulator with no physics thread: deterministic, it only moves when a test advances it
+    yield module.create_app(module.SimSource(autostart=False)).test_client()
 
 
 def post(client, path, body):
@@ -27,6 +23,8 @@ def test_state_endpoint_and_alias_have_the_same_shape(client):
     for key in ("lat", "lng", "heading", "cog", "sog", "tws", "twd", "rudder", "trim", "mode", "course", "time_scale"):
         assert key in a
     assert a["mode"] == "manual" and a["course"]["marks"] == []
+    assert a["source"] == "sim" and a["link"]["state"] == "ok" and a["commanded"] is None
+    assert all(a["capabilities"].values())
 
 
 @pytest.mark.parametrize("sent,expected", [(-60, -60), (60, 60), (0, 0), (100, 100), (-100, -100), (5000, 100), (-5000, -100)])

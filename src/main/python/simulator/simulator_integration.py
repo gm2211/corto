@@ -15,7 +15,7 @@ from typing import Any, Dict, Optional
 import ultraimport
 
 Percent = ultraimport("__dir__/../api/objects/units/percent.py", ["Percent"])[0]
-get_simulator = ultraimport("__dir__/simulator.py", ["get_simulator"])[0]
+get_simulator, build_simulator = ultraimport("__dir__/simulator.py", ["get_simulator", "build_simulator"])
 (
     SimAutopilot,
     Course,
@@ -40,9 +40,13 @@ def to_number(value: Any, name: str = "value") -> float:
     return number
 
 
-def initialize_simulator():
-    """Initialize the simulator, attach the autopilot, and return the simulator instance"""
-    simulator = get_simulator()
+def initialize_simulator(autostart: bool = True):
+    """Attach the autopilot to a simulator and return it.
+
+    autostart=True returns the process-wide simulator, running its physics thread. autostart=False builds
+    a fresh one with no thread: it only moves when advance() is called (tests, and the loopback radio's tests).
+    """
+    simulator = get_simulator() if autostart else build_simulator(autostart=False)
     if simulator.autopilot is None:
         simulator.set_autopilot(SimAutopilot(simulator))
     return simulator
