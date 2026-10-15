@@ -1,3 +1,4 @@
+import math
 from typing import NamedTuple
 
 
@@ -14,15 +15,17 @@ class GPSCoord(NamedTuple):
             GPSCoord.deserialize_from_lora(param)
         except ValueError:
             return False
+        return True
 
     @staticmethod
     def deserialize_from_lora(param: str) -> 'GPSCoord':
-        lat, lon = param.split(',')
-        lat_in_range = lat in range(-90, 91)
-        lon_in_range = lon in range(-180, 181)
-        if not lat_in_range or not lon_in_range:
+        try:
+            lat, lon = (float(part) for part in param.split(','))
+        except ValueError:
+            raise ValueError(f"Invalid data for GPSCoord: {param}") from None
+        if not (math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
             raise ValueError(f"Invalid data for GPSCoord: {param}")
-        return GPSCoord(float(lat), float(lon))
+        return GPSCoord(lat, lon)
 
     def __eq__(self, other):
         return self.lat == other.lat and self.lon == other.lon
