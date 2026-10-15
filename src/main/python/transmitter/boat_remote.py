@@ -43,7 +43,8 @@ class BoatRemote:
 
     def __read_knobs(self, rudder, sail, throttle):
         def r(v):
-            percent = round(v / 3.3 * 100, 0)
+            # The boat parses commands with int(), so "R50.0" would be rejected: send whole percents
+            percent = round(v / 3.3 * 100)
             return max(0, min(100, percent))
 
         def changed(prev, new):

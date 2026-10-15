@@ -1,4 +1,10 @@
-"""The boat's wire format: telemetry (NavParams), GPSCoord and the destination command, as the boat and the app exchange them."""
+"""The boat's wire format and what the boat records, and the radio driver (stubbed: the real one touches the GPIO)."""
+import importlib
+import importlib.util
+import os
+import sys
+from unittest.mock import MagicMock
+
 import pytest
 
 from api.objects.commands.set_destination import SetDestination
@@ -7,8 +13,10 @@ from api.objects.units.angle import Angle
 from api.objects.units.gps_coord import GPSCoord
 from api.objects.units.percent import Percent
 from api.objects.units.speed import Speed
+from telemetry.nav_params_recorder import NavParamsRecorder
 
 PLACEHOLDER = "0|0|0,0|0|0|0|0"  # what the boat answers today: no GPS, no wind vane
+LORA_RADIO_PY = os.path.join(os.path.dirname(__file__), "..", "..", "main", "python", "lora", "radio.py")
 
 
 # --- wire format ------------------------------------------------------------------------------------------
@@ -57,3 +65,51 @@ def test_set_destination_round_trips():
     assert SetDestination.deserialize_from_lora(command.serialize_for_lora()) == command
     for bad in ("D", "D91,0", "D1", "43.6,-70.2", "Dnan,0"):
         assert SetDestination.can_parse_lora_data(bad) is False
+
+
+def test_the_boats_recorder_remembers_what_it_is_told():
+    recorder = NavParamsRecorder()
+    assert recorder.get_cur_nav_params().rudder_position == Percent(50)  # centred, not full port
+    recorder.record_rudder_position(Percent(20))
+    recorder.record_sail_trim(Percent(80))
+    recorder.record_motor_throttle(Percent(30))
+    recorder.record_speed_over_water(Speed(2.5))
+    params = recorder.get_cur_nav_params()
+    assert (params.rudder_position, params.sail_trim, params.motor_throttle) == (Percent(20), Percent(80), Percent(30))
+    assert params.speed_over_water == Speed(2.5)
+    assert NavParams.deserialize_from_lora(params.serialize_for_lora()) == params
+
+
+# --- the radio driver (stubbed: the real one touches the GPIO when imported) -------------------------------
+
+def test_the_radio_keeps_listening_after_it_sends(monkeypatch):
+    modules = {name: MagicMock(name=name) for name in
+               ("board", "busio", "digitalio", "adafruit_rfm9x", "adafruit_ssd1306", "RPi", "RPi.GPIO")}
+    modules["RPi"].GPIO = modules["RPi.GPIO"]
+    for name, module in modules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+    spec = importlib.util.spec_from_file_location("radio_under_test", LORA_RADIO_PY)
+    radio_module = importlib.util.module_from_spec(spec)  # not put in sys.modules: it is bound to the stubs
+    spec.loader.exec_module(radio_module)
+
+    radio = radio_module.Radio()
+    heard = []
+    radio.send("T")
+    radio.radio.send.assert_called_with(b"T", keep_listening=False)  # nothing is listening for a callback yet
+
+    radio.register_callback(heard.append)
+    assert radio.interrupt_initialized is True
+    radio.radio.send.assert_called_with(b"setup", keep_listening=True)
+    radio.send("T")
+    radio.radio.send.assert_called_with(b"T", keep_listening=True)
+
+    radio.radio.last_rssi = -80
+    assert radio.last_rssi == -80
+
+    on_packet = modules["RPi.GPIO"].add_event_callback.call_args[0][1]
+    radio.radio.rx_done = True
+    radio.radio.receive.return_value = b"hello"
+    on_packet(22)
+    radio.radio.receive.return_value = b"\xff\xfe"  # noise is not always UTF-8
+    on_packet(22)
+    assert heard[0] == "hello" and len(heard) == 2
