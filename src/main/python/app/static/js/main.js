@@ -1,20 +1,24 @@
 /* Main: API client, 10 Hz polling, requestAnimationFrame smoothing, and URL parameters
- *   ?demo=1&warp=15   reset, load the demo course, start the autopilot, follow camera at zoom 18, hints hidden
- *   ?warp=N           simulation speed (1..30)
- *   ?scale=1          demo course scale (default 1.5)
+ *   ?demo=1&warp=15   simulator only: reset, load the demo course, start the autopilot, follow camera at zoom 18, hints hidden
+ *   ?warp=N           simulator only: simulation speed (1..30)
+ *   ?scale=1          simulator only: demo course scale (default 1.5)
  *   ?zoom=N ?follow=1 ?hints=0   camera zoom, follow camera, hide the hints
+ * With the real boat (body data-source="boat") some state is null: the boat has no GPS fix yet, or its protocol
+ * does not carry the value. Nothing here assumes a number.
  */
 (function (C) {
     'use strict';
 
+    const BOAT = document.body.dataset.source === 'boat';
     const POLL_MS = 100;
-    const TAU_S = 0.08;           // smoothing time constant for what is drawn between polls
+    const TAU_S = BOAT ? 0.7 : 0.08;  // smoothing time constant for what is drawn between polls (the boat reports every 2 s)
+    const DEFAULT_CENTER = [43.6545, -70.2230];  // where the map starts until the boat has a position
     const SNAP_JUMP_M = 40;       // a jump bigger than this (a reset) snaps instead of gliding
     const M_PER_DEG = 111320;
     const params = new URLSearchParams(location.search);
 
     let state = null, view = null;
-    let seq = 0, accepted = 0, lastOk = 0, lastSign = 1;
+    let seq = 0, accepted = 0, lastOk = 0, lastSign = 1, centred = false;
 
     // --- API ----------------------------------------------------------------------------------------------
 
@@ -44,20 +48,29 @@
 
     const wrap180 = a => ((a + 540) % 360) - 180;
 
+    /** What to draw: the state's numbers, where a null (no fix, or not reported) keeps the previous value so nothing
+     *  glides off to 0 or snaps to north. The instruments show "--" for those from the raw state. */
     function targetFrom(s, prev) {
         const tm = s.to_mark;
-        const boomDeg = 6 + (100 - s.trim) / 100 * 74;
-        if (Math.abs(s.awa) > 1) lastSign = Math.sign(s.awa);
+        const keep = (key, dflt) => s[key] != null ? s[key] : (prev && prev[key] != null ? prev[key] : dflt);
+        const trim = keep('trim', 0);
+        const boomDeg = 6 + (100 - trim) / 100 * 74;
+        // The boom swings to leeward. The boat reports no apparent wind, so its true wind angle gives the side.
+        const side = s.awa != null ? s.awa : s.twa;
+        if (side != null && Math.abs(side) > 1) lastSign = Math.sign(side);
         return {
-            lat: s.lat, lng: s.lng, heading: s.heading, cog: s.cog, twd: s.twd, awa: s.awa, twa: s.twa,
+            lat: keep('lat', DEFAULT_CENTER[0]), lng: keep('lng', DEFAULT_CENTER[1]),
+            heading: keep('heading', 0), cog: keep('cog', 0), twd: keep('twd', 0), awa: keep('awa', 0), twa: keep('twa', 0),
             brg: tm ? tm.bearing : (prev ? prev.brg : 0), dist: tm ? tm.distance_m : 0,
-            rudder_deg: s.rudder_deg, trim: s.trim, opt_trim: s.opt_trim, heel: s.heel,
-            aws: s.aws, tws: s.tws, sog: s.sog, stw: s.stw, boom: lastSign * boomDeg
+            rudder_deg: keep('rudder_deg', 0), trim: trim, opt_trim: keep('opt_trim', 50), heel: keep('heel', 0),
+            aws: keep('aws', 0), tws: keep('tws', 0), sog: keep('sog', 0), stw: keep('stw', 0), boom: lastSign * boomDeg
         };
     }
 
     const ANGLES = ['heading', 'cog', 'twd', 'awa', 'twa', 'brg'];
     const LINEAR = ['lat', 'lng', 'dist', 'rudder_deg', 'trim', 'opt_trim', 'heel', 'aws', 'tws', 'sog', 'stw', 'boom'];
+
+    const hasFix = s => s.lat != null && s.lng != null;
 
     function metresApart(a, b) {
         const dy = (a.lat - b.lat) * M_PER_DEG, dx = (a.lng - b.lng) * M_PER_DEG * Math.cos(a.lat * Math.PI / 180);
@@ -77,6 +90,10 @@
         state._target = target;
         C.Controls.onState(s);
         C.Map.syncCourse(s, C.Controls.mode === 'auto');
+        if (!centred && hasFix(s)) {  // the boat's first fix: bring the map to it, once
+            centred = true;
+            C.Map.centerOn(s.lat, s.lng, parseInt(params.get('zoom'), 10) > 0 ? parseInt(params.get('zoom'), 10) : 17);
+        }
     }
 
     function smooth(dt) {
@@ -97,7 +114,11 @@
         lastFrame = now;
         if (state && view) {
             smooth(dt);
-            C.Map.render(view, state, now, state.mode === 'auto' && (state.running || !!(state.to_mark && state.to_mark.upwind)));
+            const upwind = !!(state.to_mark && state.to_mark.upwind);
+            // The simulator's autopilot is a mode; with the boat the line shows while a course is being sent
+            const approach = BOAT ? (!!state.running || (C.Controls.mode === 'auto' && upwind))
+                : state.mode === 'auto' && (state.running || upwind);
+            C.Map.render(view, state, now, approach && hasFix(state));
             C.Instruments.render(view, state);
         }
         requestAnimationFrame(frame);
@@ -108,8 +129,11 @@
         const id = ++seq;
         fetch('/api/state', { cache: 'no-store' })
             .then(r => r.json())
-            .then(s => { accept(s, id); lastOk = performance.now(); C.Controls.setLive(true); })
-            .catch(() => { if (performance.now() - lastOk > 1500) C.Controls.setLive(false); })
+            .then(s => { accept(s, id); lastOk = performance.now(); C.Controls.setLink(true, s); })
+            .catch(err => {
+                console.warn('Corto poll failed:', err && err.message);
+                if (performance.now() - lastOk > 1500) C.Controls.setLink(false, null);
+            })
             .then(() => setTimeout(poll, Math.max(0, POLL_MS - (performance.now() - t0))));
     }
 
@@ -124,8 +148,9 @@
     // --- start up -----------------------------------------------------------------------------------------
 
     function applyParams() {
-        const warp = parseFloat(params.get('warp'));
-        const demo = params.get('demo') === '1';
+        // demo and warp are the simulator's; with the real boat they are ignored
+        const warp = BOAT ? NaN : parseFloat(params.get('warp'));
+        const demo = !BOAT && params.get('demo') === '1';
         const zoom = parseInt(params.get('zoom'), 10);
         if (demo || params.get('hints') === '0') document.body.classList.add('no-hints');
 
@@ -144,7 +169,7 @@
         } else {
             if (warp > 0) chain = chain.then(() => api.control({ time_scale: warp }));
             if (params.get('follow') === '1') C.Controls.setFollowUI(true);
-            if (zoom > 0 && state) C.Map.centerOn(state.lat, state.lng, zoom);
+            if (zoom > 0 && state && hasFix(state)) C.Map.centerOn(state.lat, state.lng, zoom);
         }
         return chain;
     }
@@ -152,17 +177,18 @@
     function start() {
         fetch('/api/state', { cache: 'no-store' }).then(r => r.json()).then(first => {
             C.Map.init({
-                center: [first.lat, first.lng],
+                center: hasFix(first) ? [first.lat, first.lng] : DEFAULT_CENTER,
                 onAddMark: C.Controls.addMark,
                 onMoveMark: C.Controls.moveMark,
                 onUserPan: () => C.Controls.setFollowUI(false)
             });
             C.Instruments.init();
             C.Controls.init({ api: api });
+            centred = hasFix(first);  // otherwise accept() centres the map on the boat's first fix
             accept(first);
-            C.Map.centerOn(first.lat, first.lng, 17);
+            if (centred) C.Map.centerOn(first.lat, first.lng, 17);
             lastOk = performance.now();
-            C.Controls.setLive(true);
+            C.Controls.setLink(true, first);
             applyParams().then(() => { poll(); });
             requestAnimationFrame(frame);
         }).catch(() => setTimeout(start, 1000));

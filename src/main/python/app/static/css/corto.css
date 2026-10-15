@@ -1,4 +1,4 @@
-/* Corto boat simulator: a sailing instrument, not a form. Plain CSS, no build step. */
+/* Corto: a sailing instrument, not a form. Plain CSS, no build step. */
 
 :root {
     --port: #ef4444;
@@ -72,8 +72,16 @@ kbd {
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-mark { width: 24px; height: 24px; flex: none; }
 .brand-name { font-weight: 650; letter-spacing: .01em; white-space: nowrap; }
-.brand-dot { color: var(--faint); margin: 0 2px; }
-.brand-sub { font-weight: 500; color: var(--muted); }
+/* Says where the numbers come from. The boat is the real thing; the simulator is a test bench and looks it. */
+.source-badge {
+    display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 10px; vertical-align: 1px;
+    font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+}
+.source-badge.boat { color: var(--true); background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.55); }
+.source-badge.sim { color: var(--muted); background: transparent; border: 1px dashed var(--line-strong); }
+
+/* Controls that only mean something in the simulator are gone with the real boat */
+[data-source="boat"] .sim-only { display: none !important; }
 
 .topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 
@@ -100,6 +108,7 @@ kbd {
     border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.05); cursor: pointer; font-size: 13px; font-weight: 600;
 }
 .chip:hover { background: rgba(255, 255, 255, 0.09); }
+.chip:disabled { cursor: default; color: inherit; background: rgba(255, 255, 255, 0.05); }
 .wind-chip { color: var(--true); }
 .wind-chip-arrow { width: 16px; height: 16px; transition: transform .2s ease-out; }
 #wind-chip-text { color: var(--text); }
@@ -108,6 +117,8 @@ kbd {
 .live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); }
 .live.ok .live-dot { background: var(--stbd); box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); animation: live-pulse 1.8s ease-out infinite; }
 .live.ok { color: #9bd8b0; }
+.live.stale .live-dot { background: var(--apparent); }
+.live.stale { color: #f5cf8f; }
 .live.lost .live-dot { background: var(--port); }
 .live.lost { color: #f3a3a3; }
 @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); } }
@@ -226,6 +237,9 @@ kbd {
 .tile-sub.app span { color: var(--apparent); }
 .tile-sub.mark span { color: var(--mark); }
 .tile.idle .tile-value, .tile.idle .tile-sub span { color: var(--faint); }
+/* A number the boat does not report (COG, SOG, TWS, AWS, AWA, HEEL) reads "--" */
+.tile .na { color: var(--faint) !important; }
+.lg.na { display: none; }
 
 /* Bars */
 .bar-block { display: flex; flex-direction: column; gap: 4px; }
@@ -330,9 +344,21 @@ kbd {
 }
 .toast[hidden] { display: none; }
 
+/* What the link to the boat is doing, when that is more than the dot in the top bar can say */
+.link-banner {
+    position: absolute; z-index: 965; left: 50%; top: 12px; transform: translateX(-50%) translateX(calc(var(--rail-w) / -2));
+    padding: 7px 14px; border-radius: 18px; font-weight: 650; font-size: 13px; color: var(--text); white-space: nowrap;
+    background: rgba(15, 29, 42, .92); border: 1px solid var(--line-strong); box-shadow: 0 6px 22px rgba(0, 0, 0, .35);
+}
+.link-banner[hidden] { display: none; }
+.link-banner.lost { color: #ffe2e2; background: rgba(127, 29, 29, .88); border-color: rgba(239, 68, 68, .8); }
+.link-banner:not([hidden]) ~ .toast { top: 52px; }
+
 /* ---- Map objects ------------------------------------------------------------------------------------ */
 
 .boat-icon { background: none; border: 0; }
+.boat-icon.stale { opacity: .45; }
+.boat-icon.nofix { display: none; }
 .boat-rot { width: 100%; height: 100%; transform-origin: 50% 50%; will-change: transform; }
 .boat-rot svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 2.5px rgba(0, 0, 0, .55)); }
 
@@ -364,6 +390,6 @@ kbd {
 @media (max-width: 960px) {
     :root { --rail-w: 300px; }
     .dial { width: 210px; height: 210px; }
-    .brand-sub, .hint.keys { display: none; }
+    .hint.keys { display: none; }
     .dock { width: 340px; }
 }

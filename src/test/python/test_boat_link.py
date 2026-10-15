@@ -464,6 +464,18 @@ def test_bad_input_changes_nothing(link):
     assert link.state()["running"] is False
 
 
+# --- pages ------------------------------------------------------------------------------------------------
+
+def test_the_page_names_its_source(link, app_module):
+    boat = link.client.get("/").get_data(as_text=True)
+    assert 'data-source="boat"' in boat and "Boat · LoRa" in boat and "<title>Corto</title>" in boat
+    sim = app_module.create_app(app_module.SimSource(autostart=False)).test_client().get("/").get_data(as_text=True)
+    assert 'data-source="sim"' in sim and ">Simulator<" in sim and "<title>Corto · Simulator</title>" in sim
+    old_header = "boat " + "simulator"  # what the page used to call itself (split so that grepping the repo for it finds nothing)
+    for page in (boat, sim):
+        assert old_header not in page.lower()
+
+
 # --- the loopback boat ------------------------------------------------------------------------------------
 
 def test_loopback_end_to_end(app_module):
