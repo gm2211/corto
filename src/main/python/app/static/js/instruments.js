@@ -1,5 +1,7 @@
 /* Instruments: the wind/compass dial, the numeric tiles, the rudder bar and the sheet bar.
- * The SVG skeleton is in index.html; this file builds the ticks and moves things each frame. */
+ * The SVG skeleton is in index.html; this file builds the ticks and moves things each frame.
+ * A value the source does not report (the boat has no COG, SOG, wind speed, apparent wind or heel; none of
+ * it before its first report) is null in the state and shows as "--" here. */
 (function (C) {
     'use strict';
 
@@ -18,6 +20,13 @@
     /** Write text only when it changed, so per-frame calls stay cheap. */
     function setText(node, text) {
         if (last.get(node) !== text) { last.set(node, text); node.textContent = text; }
+    }
+
+    /** Show a number, or "--" muted when the source does not report it. */
+    function setNum(node, text, missing) {
+        setText(node, missing ? '--' : text);
+        const key = node.id + ':na';
+        if (last.get(key) !== missing) { last.set(key, missing); node.classList.toggle('na', missing); }
     }
 
     function setAttr(node, name, value) {
@@ -74,7 +83,8 @@
     function init() {
         ['dial', 'ring', 'true-wind', 'app-wind', 'mark-tick', 'sil-boom', 'dial-hdg',
             't-hdg', 't-cog', 't-sog', 't-stw', 't-heel', 't-tws', 't-twa', 't-aws', 't-awa', 't-dist', 't-brg', 'tile-mark',
-            'rudder-read', 'rudder-fill-port', 'rudder-fill-stbd', 'sheet-read', 'sheet-state', 'sheet-fill', 'sheet-opt'
+            'rudder-read', 'rudder-fill-port', 'rudder-fill-stbd', 'sheet-read', 'sheet-state', 'sheet-fill', 'sheet-opt',
+            'lg-app'
         ].forEach(id => { el[id] = $(id); });
         buildDial();
     }
@@ -98,7 +108,11 @@
             for (const t of ringLabels) t.setAttribute('transform', rot + t._pivot + ')');
         }
         setAttr(el['true-wind'], 'transform', 'rotate(' + view.twd.toFixed(2) + ' 120 120)');
+        setAttr(el['true-wind'], 'visibility', state.twd == null ? 'hidden' : 'visible');
         setAttr(el['app-wind'], 'transform', 'rotate(' + view.awa.toFixed(2) + ' 120 120)');
+        // No apparent wind from the boat: no arrow and no legend entry for it
+        setAttr(el['app-wind'], 'visibility', state.awa == null ? 'hidden' : 'visible');
+        if (last.get('lg-app') !== (state.awa == null)) { last.set('lg-app', state.awa == null); el['lg-app'].classList.toggle('na', state.awa == null); }
         setAttr(el['sil-boom'], 'transform', 'rotate(' + view.boom.toFixed(1) + ' 0 -4)');
 
         const hasMark = !!state.to_mark;
@@ -106,18 +120,18 @@
         setAttr(el['mark-tick'], 'visibility', hasMark ? 'visible' : 'hidden');
         if (hasMark) setAttr(el['mark-tick'], 'transform', 'rotate(' + view.brg.toFixed(2) + ' 120 120)');
 
-        const hdg = pad3(view.heading);
+        const hdg = state.heading == null ? '---°' : pad3(view.heading);
         setText(el['dial-hdg'], hdg);
         setText(el['t-hdg'], hdg);
-        setText(el['t-cog'], pad3(view.cog));
-        setText(el['t-sog'], fmtKn(view.sog));
-        setText(el['t-stw'], fmtKn(view.stw));
+        setNum(el['t-cog'], pad3(view.cog), state.cog == null);
+        setNum(el['t-sog'], fmtKn(view.sog), state.sog == null);
+        setNum(el['t-stw'], fmtKn(view.stw), state.stw == null);
         const heel = Math.abs(view.heel);
-        setText(el['t-heel'], heel < 0.5 ? '0°' : Math.round(heel) + '° ' + (view.heel < 0 ? 'P' : 'S'));
-        setText(el['t-tws'], fmtKn(view.tws));
-        setText(el['t-twa'], Math.round(Math.abs(view.twa)) + '° ' + side(view.twa));
-        setText(el['t-aws'], fmtKn(view.aws));
-        setText(el['t-awa'], Math.round(Math.abs(view.awa)) + '° ' + side(view.awa));
+        setNum(el['t-heel'], heel < 0.5 ? '0°' : Math.round(heel) + '° ' + (view.heel < 0 ? 'P' : 'S'), state.heel == null);
+        setNum(el['t-tws'], fmtKn(view.tws), state.tws == null);
+        setNum(el['t-twa'], Math.round(Math.abs(view.twa)) + '° ' + side(view.twa), state.twa == null);
+        setNum(el['t-aws'], fmtKn(view.aws), state.aws == null);
+        setNum(el['t-awa'], Math.round(Math.abs(view.awa)) + '° ' + side(view.awa), state.awa == null);
         setText(el['t-dist'], hasMark ? fmtDist(view.dist) : '--');
         setText(el['t-brg'], hasMark ? pad3(view.brg) : '---°');
 
@@ -127,17 +141,18 @@
         setAttr(el['rudder-fill-port'], 'style', 'width:' + (deg < 0 ? half : 0).toFixed(2) + '%');
         setAttr(el['rudder-fill-stbd'], 'style', 'width:' + (deg > 0 ? half : 0).toFixed(2) + '%');
         const rr = Math.round(Math.abs(deg));
-        setText(el['rudder-read'], rr === 0 ? '0°' : rr + '° ' + (deg < 0 ? 'P' : 'S'));
+        setText(el['rudder-read'], state.rudder_deg == null ? '--' : rr === 0 ? '0°' : rr + '° ' + (deg < 0 ? 'P' : 'S'));
         el['rudder-read'].className = 'bar-read' + (rr === 0 ? '' : deg < 0 ? ' port' : ' stbd');
 
         // Sheet bar: eased (left) to sheeted in (right), with the optimal marker and a state word
         const trim = Math.max(0, Math.min(100, view.trim));
         setAttr(el['sheet-fill'], 'style', 'width:calc(' + trim.toFixed(2) + '% - 2px)');
-        setAttr(el['sheet-opt'], 'style', 'left:' + view.opt_trim.toFixed(2) + '%');
-        setText(el['sheet-read'], Math.round(trim) + '%');
+        setAttr(el['sheet-opt'], 'style', state.opt_trim == null ? 'display:none' : 'left:' + view.opt_trim.toFixed(2) + '%');
+        setText(el['sheet-read'], state.trim == null ? '--' : Math.round(trim) + '%');
         const diff = state.trim - state.opt_trim;
         let word = 'TRIMMED', cls = 'ok';
-        if (diff < -TRIM_OK_BAND) { word = 'LUFFING'; cls = 'warn'; }
+        if (state.trim == null || state.opt_trim == null) { word = ''; cls = ''; }
+        else if (diff < -TRIM_OK_BAND) { word = 'LUFFING'; cls = 'warn'; }
         else if (diff > TRIM_OK_BAND) { word = 'OVER-TRIMMED'; cls = 'warn'; }
         setText(el['sheet-state'], word);
         setAttr(el['sheet-state'], 'class', 'sheet-state ' + cls);

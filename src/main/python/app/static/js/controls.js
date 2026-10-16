@@ -1,17 +1,20 @@
-/* Controls: top bar (mode, warp, wind chip + environment popover) and the control dock
- * (manual sliders, autopilot course editor). The server owns the state; sliders are NOT overwritten by polls
- * while the human is using them. */
+/* Controls: top bar (mode, warp, wind chip + environment popover, link indicator) and the control dock
+ * (manual sliders, course editor). The server owns the state; sliders are NOT overwritten by polls while the
+ * human is using them. With the real boat (body data-source="boat") only what the boat can do is offered:
+ * the Course tab is just a panel (no mode to set), "Send to boat" is `running`, and the link indicator and
+ * banner say how fresh the boat's last report is. */
 (function (C) {
     'use strict';
 
     const $ = id => document.getElementById(id);
+    const BOAT = document.body.dataset.source === 'boat';
     const ENV_DEBOUNCE_MS = 150;
     const SEND_EVERY_MS = 70;
 
     let api, state = null;
     let uiMode = 'manual';
     let modePendingUntil = 0, autoTrimPendingUntil = 0, lastEnvInput = 0, lastLoopClick = 0;
-    let chipSig = '';
+    let chipSig = '', slidersSynced = false;
     let envTimer = null;
     const el = {};
 
@@ -99,8 +102,10 @@
             const mode = b.dataset.mode;
             if (mode === uiMode) return;
             setMode(mode, true);
+            if (BOAT) return;  // the boat has no mode to set: the tabs only switch panels
             api.control({ mode: mode }).then(() => { if (mode === 'manual') syncManualSliders(); });
         }));
+        if (BOAT) return;  // warp, wind and current are the simulator's
         document.querySelectorAll('#warp button').forEach(b => b.addEventListener('click', () => {
             api.control({ time_scale: parseFloat(b.dataset.warp) });
             document.querySelectorAll('#warp button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
@@ -184,7 +189,8 @@
         });
         $('btn-start').addEventListener('click', () => {
             if (!state) return;
-            api.control({ mode: 'auto', running: !(state.mode === 'auto' && state.running) });
+            if (BOAT) api.control({ running: !state.running });
+            else api.control({ mode: 'auto', running: !(state.mode === 'auto' && state.running) });
         });
         $('btn-clear').addEventListener('click', () => api.clearCourse());
         $('loop-toggle').addEventListener('change', () => {
@@ -213,20 +219,26 @@
 
     function renderAutoStatus(s) {
         const course = s.course, n = course.marks.length;
-        const running = s.mode === 'auto' && s.running;
+        const running = BOAT ? !!s.running : s.mode === 'auto' && s.running;
         let html;
         if (!n) html = 'No marks yet.';
         else if (course.finished) html = 'Course finished.';
         else if (s.to_mark) {
-            const head = running ? 'Heading to ' : 'Next: ';
+            const head = BOAT ? (running ? 'Sending ' : 'Next: ') : (running ? 'Heading to ' : 'Next: ');
             html = head + '<b>mark ' + (s.to_mark.index + 1) + '</b> · ' + C.Instruments.fmtDist(s.to_mark.distance_m) + ' · ' + C.Instruments.pad3(s.to_mark.bearing);
             if (course.laps) html += ' · lap ' + (course.laps + 1);
+        } else if (BOAT) {
+            html = (running ? 'Sending <b>mark ' + (course.active + 1) + '</b> · ' : '') + 'waiting for a GPS fix';
         } else html = '';
+        // The boat does not confirm what it is sent: say how long ago the active mark went out
+        const sent = BOAT && running && s.commanded && s.commanded.destination;
+        if (sent && sent.age_s != null) html += ' · sent ' + fmtAge(sent.age_s) + ' ago, not confirmed';
         if (s.to_mark && s.to_mark.upwind && n) html += ' <span class="warn">· upwind</span>';
         $('auto-status').innerHTML = html;
 
         const start = $('btn-start');
-        start.textContent = running ? 'Pause' : (course.finished ? 'Restart' : 'Start');
+        if (BOAT) start.textContent = running ? 'Stop sending' : (course.finished ? 'Send again' : 'Send to boat');
+        else start.textContent = running ? 'Pause' : (course.finished ? 'Restart' : 'Start');
         start.classList.toggle('running', running);
         start.disabled = !n;
         $('btn-clear').disabled = !n;
@@ -234,7 +246,8 @@
 
     function renderToast(s) {
         const toast = $('toast');
-        const warn = s.mode === 'auto' && s.warnings && s.warnings.length;
+        const planning = BOAT ? (s.running || uiMode === 'auto') : s.mode === 'auto';
+        const warn = planning && s.warnings && s.warnings.length;
         const text = 'Upwind leg — navigator can’t tack yet';
         if (warn && toast.hidden) { toast.textContent = text; toast.hidden = false; }
         if (!warn && !toast.hidden) toast.hidden = true;
@@ -283,26 +296,34 @@
     function onState(s) {
         const first = state === null;
         state = s;
+        // What this source can do; the boat reports null for mode, auto-trim, time scale and the environment
+        const caps = s.capabilities || { mode: true, auto_trim: true, time_scale: true, environment: true };
         if (first) syncManualSliders();
+        // With the boat the sliders start from what it reports, once it has reported
+        if (BOAT && !slidersSynced && s.rudder != null) { slidersSynced = true; syncManualSliders(); }
 
-        if (Date.now() > modePendingUntil && s.mode !== uiMode) {
+        if (caps.mode && Date.now() > modePendingUntil && s.mode !== uiMode) {
             setMode(s.mode, false);
             if (s.mode === 'manual') syncManualSliders();
         }
-        if (Date.now() > autoTrimPendingUntil) el.autoTrim.checked = !!s.auto_trim;
+        if (caps.auto_trim && Date.now() > autoTrimPendingUntil) el.autoTrim.checked = !!s.auto_trim;
         updateEnabled();
 
-        document.querySelectorAll('#warp button').forEach(b =>
-            b.setAttribute('aria-pressed', String(Math.abs(parseFloat(b.dataset.warp) - s.time_scale) < 0.01)));
+        if (caps.time_scale) {
+            document.querySelectorAll('#warp button').forEach(b =>
+                b.setAttribute('aria-pressed', String(Math.abs(parseFloat(b.dataset.warp) - s.time_scale) < 0.01)));
+        }
 
-        $('wind-chip-text').textContent = Math.round(s.twd) + '° · ' + s.tws.toFixed(0) + ' kn';
-        $('wind-chip-arrow').style.transform = 'rotate(' + s.twd.toFixed(0) + 'deg)';
-        syncEnvironment(s);
+        $('wind-chip-text').textContent = (s.twd == null ? '--' : Math.round(s.twd)) + '° · ' + (s.tws == null ? '--' : s.tws.toFixed(0)) + ' kn';
+        $('wind-chip-arrow').style.visibility = s.twd == null ? 'hidden' : '';
+        if (s.twd != null) $('wind-chip-arrow').style.transform = 'rotate(' + s.twd.toFixed(0) + 'deg)';
+        if (caps.environment) syncEnvironment(s);
 
         // The sheet slider follows the server while the autopilot owns the sheet; the human owns it otherwise
-        if (el.sheet.disabled) { el.sheet.value = Math.round(s.trim); showSheet(s.trim); }
-        const optPct = clamp(s.opt_trim, 0, 100);
-        $('slider-opt').style.left = 'calc(8px + (100% - 16px) * ' + (optPct / 100).toFixed(4) + ')';
+        if (el.sheet.disabled && s.trim != null && !BOAT) { el.sheet.value = Math.round(s.trim); showSheet(s.trim); }
+        const optMarker = $('slider-opt');
+        optMarker.style.visibility = s.opt_trim == null ? 'hidden' : '';
+        if (s.opt_trim != null) optMarker.style.left = 'calc(8px + (100% - 16px) * ' + (clamp(s.opt_trim, 0, 100) / 100).toFixed(4) + ')';
 
         renderChips(s);
         renderAutoStatus(s);
@@ -310,12 +331,53 @@
         if (Date.now() - lastLoopClick > 800) $('loop-toggle').checked = !!s.course.loop;
     }
 
-    function setLive(ok, ageMs) {
-        const live = $('live');
-        live.classList.toggle('ok', ok);
-        live.classList.toggle('lost', !ok);
-        live.title = ok ? 'Connected to the simulator' : 'No response from the simulator';
-        live.querySelector('.live-text').textContent = ok ? 'Live' : 'Offline';
+    /** "12 s", "3 min", "2 h": how old a report is. */
+    function fmtAge(sec) {
+        if (sec < 90) return Math.round(sec) + ' s';
+        if (sec < 5400) return Math.round(sec / 60) + ' min';
+        return Math.round(sec / 3600) + ' h';
+    }
+
+    function showBanner(text, lost) {
+        const banner = $('link-banner');
+        banner.hidden = !text;
+        banner.className = 'link-banner' + (lost ? ' lost' : '');
+        if (text) banner.textContent = text;
+    }
+
+    /** The indicator in the top bar. `httpOk` is whether this page could reach the app at all; `s` is the latest
+     *  state. With the boat that is a different question: the app can be fine and the boat out of range. */
+    function setLink(httpOk, s) {
+        const live = $('live'), text = live.querySelector('.live-text');
+        let cls, label, title;
+        if (!BOAT) {
+            cls = httpOk ? 'ok' : 'lost';
+            label = httpOk ? 'Live' : 'Offline';
+            title = httpOk ? 'Connected to the simulator' : 'No response from the simulator';
+        } else if (!httpOk || !s || !s.link) {
+            cls = 'lost'; label = 'Offline'; title = 'No response from the Corto app';
+        } else {
+            const link = s.link;
+            const rssi = link.rssi != null ? ' · RSSI ' + Math.round(link.rssi) + ' dBm' : '';
+            const ago = link.age_s != null ? fmtAge(link.age_s) + ' ago' : null;
+            if (link.state === 'ok') { cls = 'ok'; label = 'Live'; title = 'Last report ' + ago + rssi; }
+            else if (link.state === 'stale') { cls = 'stale'; label = ago; title = 'Last report ' + ago + rssi; }
+            else if (link.state === 'lost') {
+                cls = 'lost'; label = 'No link';
+                title = ago ? 'No report from the boat since ' + ago + rssi : 'The boat has not answered yet';
+            } else { cls = 'connecting'; label = 'Connecting…'; title = 'Waiting for the boat\u2019s first report over LoRa'; }
+
+            let banner = null, lost = false;
+            if (link.state === 'connecting') banner = 'Waiting for the boat\u2019s first report over LoRa…';
+            else if (link.state === 'lost') {
+                banner = 'No link to the boat · ' + (ago ? 'last report ' + ago : 'no report yet'); lost = true;
+            } else if (!link.fix) banner = 'No GPS fix from the boat';
+            showBanner(banner, lost);
+        }
+        live.classList.remove('ok', 'stale', 'lost', 'connecting');
+        live.classList.add(cls);
+        live.title = title;
+        text.textContent = label;
     }
 
     function init(options) {
@@ -333,7 +395,7 @@
         init: init,
         get mode() { return uiMode; },
         onState: onState,
-        setLive: setLive,
+        setLink: setLink,
         addMark: addMark,
         moveMark: moveMark,
         setFollowUI: setFollowUI,

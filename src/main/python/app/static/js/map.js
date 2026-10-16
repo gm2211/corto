@@ -26,7 +26,7 @@
   <circle cx="24" cy="38" r="3.2" fill="#0b1620"/>
 </svg>`;
 
-    let map, boatMarker, boatRot, boomEl, sailEl, sailHaloEl, rudderEl;
+    let map, boatMarker, boatIconEl, boatRot, boomEl, sailEl, sailHaloEl, rudderEl;
     let wakeRenderer, wakePolys = [], wakePts = [], lastWakeDraw = 0;
     let courseSig = '', markMarkers = [], legLines = [], activeRing = null, approach = null, approachHit = null, approachUp = false;
     let following = false, editing = false, draggingMark = false, sailSign = 1;
@@ -74,7 +74,7 @@
             iconAnchor: [BOAT_SIZE[0] / 2, BOAT_SIZE[1] / 2]
         });
         boatMarker = L.marker(start, { icon: icon, interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(map);
-        const el = boatMarker.getElement();
+        const el = boatIconEl = boatMarker.getElement();
         boatRot = el.querySelector('.boat-rot');
         boomEl = el.querySelector('#boat-boom');
         sailEl = el.querySelector('#boat-sail');
@@ -280,6 +280,12 @@
 
     function render(view, state, nowMs, autoMode) {
         const ll = [view.lat, view.lng];
+        // No position yet (the boat has no GPS fix): hide the boat, it would sit at the default centre.
+        // A boat whose link is going quiet is drawn faded: where it was, not where it is.
+        const noFix = state.lat == null || state.lng == null;
+        const quiet = !!state.link && (state.link.state === 'stale' || state.link.state === 'lost');
+        boatIconEl.classList.toggle('nofix', noFix);
+        boatIconEl.classList.toggle('stale', quiet);
         boatMarker.setLatLng(ll);
         boatRot.style.transform = 'rotate(' + view.heading.toFixed(2) + 'deg)';
 
@@ -296,9 +302,10 @@
         }
         rudderEl.setAttribute('transform', 'rotate(' + (-view.rudder_deg).toFixed(2) + ' 24 90)');
 
-        if (following) followStep(view.lat, view.lng);
-        updateWake(ll, state.sim_time, nowMs);
-        updateApproach(ll, state, autoMode);
+        if (following && !noFix) followStep(view.lat, view.lng);
+        // Wake time is simulated seconds; the real boat has no sim clock, so use the wall clock
+        if (!noFix) updateWake(ll, state.sim_time != null ? state.sim_time : nowMs / 1000, nowMs);
+        updateApproach(ll, state, autoMode && !noFix);
     }
 
     C.Map = {

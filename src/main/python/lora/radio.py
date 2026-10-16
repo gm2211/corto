@@ -1,3 +1,5 @@
+import threading
+
 import board
 import busio
 import digitalio
@@ -23,6 +25,13 @@ class Radio:
         self.radio = adafruit_rfm9x.RFM9x(self.spi, self.CS, self.RESET, self.RADIO_FREQ_MHZ)
         self.radio.tx_power = 23  # 23 is the maximum power
         self.interrupt_initialized = False
+        # The GPIO callback thread receives while another thread (the web app's link thread) sends
+        self._lock = threading.RLock()
+
+    @property
+    def last_rssi(self):
+        """Signal strength (dBm) of the last packet received, or None."""
+        return getattr(self.radio, "last_rssi", None)
 
     def register_callback(self, callback):
         import RPi.GPIO as gpio
@@ -30,24 +39,29 @@ class Radio:
         self.__init_interrupt_if_not_initd()
 
         def packet_received_callback(_ignored):
-            # Check to see if this was a "receive" interrupt - ignore "transmit" interrupts
-            if not self.radio.rx_done:
-                return None
+            with self._lock:
+                # Check to see if this was a "receive" interrupt - ignore "transmit" interrupts
+                if not self.radio.rx_done:
+                    return None
 
-            packet = self.radio.receive(timeout=None)
+                packet = self.radio.receive(timeout=None)
 
             if packet is None:
                 return None
 
-            packet_content = packet.decode(UTF_8)
+            # Other radios on 915 MHz and noise are not always valid UTF-8
+            packet_content = packet.decode(UTF_8, errors="replace")
             self.show_on_display(f"Received: {packet_content}")
             callback(packet_content)
 
         gpio.add_event_callback(self.INTERRUPT_PIN, packet_received_callback)
 
     def send(self, message: str):
-        self.radio.send(bytes(message, UTF_8))
-        self.show_on_display(f"Sent: {message}")
+        with self._lock:
+            # Keep listening after sending: by default the radio goes idle after a transmission and
+            # would never hear the reply (the boat's telemetry, or the next command).
+            self.radio.send(bytes(message, UTF_8), keep_listening=self.interrupt_initialized)
+            self.show_on_display(f"Sent: {message}")
 
     def show_on_display(self, message):
         self.__clear_display()

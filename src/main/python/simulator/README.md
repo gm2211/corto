@@ -1,6 +1,6 @@
-# Corto Boat Simulator
+# Corto simulator
 
-A web simulator for the Corto boat. It runs a small sailing-physics model behind a Flask app and a sailing-instrument UI, and it can sail a course of marks with **the boat's own `Navigator`** (`src/main/python/boat/navigation/navigator.py`) steering the simulated rudder and sheet, so the navigation code can be exercised without a boat.
+The test bench behind the Corto web app's `--source sim`. The app itself shows the real boat over LoRa (see the main README); with `--source sim` it shows this simulator instead, labelled **Simulator** in the header. The simulator runs a small sailing-physics model behind the same Flask app and sailing-instrument UI, and it can sail a course of marks with **the boat's own `Navigator`** (`src/main/python/boat/navigation/navigator.py`) steering the simulated rudder and sheet, so the app and the navigation code can be exercised without a boat.
 
 ![The simulator rounding the demo course](../../../../docs/simulator/simulator-demo.gif)
 
@@ -9,20 +9,22 @@ A web simulator for the Corto boat. It runs a small sailing-physics model behind
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install flask ultraimport            # the simulator needs nothing else (pytest for the tests)
-python src/main/python/app/app.py --port 5000 [--host 127.0.0.1]
+python src/main/python/app/app.py --source sim --port 5000 [--host 127.0.0.1]
 ```
+
+(`--source auto`, the default, picks the simulator on any machine without the LoRa radio libraries. `--source boat --radio loopback` puts this simulator behind a fake radio so the app's boat mode can be developed without hardware.)
 
 Open <http://127.0.0.1:5000>. (On macOS port 5000 is often taken by AirPlay Receiver: pick another with `--port`.)
 
 **Demo:** <http://127.0.0.1:5000/?demo=1&warp=15> resets the boat, loads the demo course, starts the autopilot, follows the boat at zoom 18 and hides the hints. With wind from 225 degrees at 12 knots the autopilot rounds the three marks after about 14, 20 and 34 seconds at 15x (add `&scale=1` for the 1x-size course: about 10, 14 and 22 seconds).
 
-URL parameters: `demo=1`, `warp=N` (1..30), `scale=S` (demo course size, default 1.5), `zoom=N`, `follow=1`, `hints=0`.
+URL parameters: `demo=1`, `warp=N` (1..30), `scale=S` (demo course size, default 1.5), `zoom=N`, `follow=1`, `hints=0`. `demo`, `warp` and `scale` are the simulator's and are ignored when the app shows the boat.
 
 ## The UI
 
 | Area | What it is |
 |---|---|
-| Top bar | **Manual / Autopilot** switch, a wind chip that opens the environment popover (wind speed and direction, current speed and direction; changes apply live), **1x / 5x / 15x** time warp, and a live dot. |
+| Top bar | A **Simulator** badge next to the name (with the real boat it reads "Boat · LoRa"), the **Manual / Autopilot** switch (**Course** with the boat), a wind chip that opens the environment popover (wind speed and direction, current speed and direction; changes apply live), **1x / 5x / 15x** time warp, and a live dot. |
 | Map | OpenStreetMap, muted so the boat and course stand out, plus the OpenSeaMap seamark overlay and a metric scale bar. The boat is a persistent SVG hull rotated with a CSS transform, with its boom swung to leeward by the sheet setting. The wake is about 90 s of sim time drawn as a fading polyline. |
 | Instrument rail | A 240 px heading-up wind/compass dial (true wind in cyan, apparent wind in amber, red/green close-hauled sectors, an orange tick for the bearing to the active mark), tiles for HDG, SOG, HEEL (est.), TWS/TWA, AWS/AWA and distance/bearing to the mark, a centred **rudder bar** (+/-45 degrees, red to port, green to starboard) and a **sheet bar** with an optimal-trim marker and a state word (TRIMMED / LUFFING / OVER-TRIMMED). |
 | Control dock | Manual: rudder slider (-100..100, double-click to centre), sheet slider with the optimal marker and an **Auto-trim** checkbox, a collapsed motor slider. Autopilot: click the map to add marks, drag a mark to move it, mark chips with an x, **Demo course**, **Start / Pause**, **Clear** and a **Loop** toggle. **Stop** centres the rudder, zeroes the sheet and motor, and switches to manual. |
@@ -34,7 +36,9 @@ Dashed lines are the course. A leg that points closer than 45 degrees to the win
 ## How it works
 
 ```
- browser  <--- 10 Hz poll of GET /api/state, POST /api/control ...  --->  app/app.py (Flask)
+ browser  <--- 10 Hz poll of GET /api/state, POST /api/control ...  --->  app/app.py (Flask, create_app(source))
+                                                                            |
+                                              app/sources.py: SimSource  (or BoatSource in app/boat_link.py: LoRa)
                                                                             |
                                                          simulator/simulator_integration.py
                                                                             |
@@ -46,6 +50,7 @@ Dashed lines are the course. A leg that points closer than 45 degrees to the win
 * `simulator.py` has the simulated wind vane, GPS, servos and nav-params recorder (they implement the same methods the real drivers do) and `BoatPhysicsSimulator`.
 * `autopilot.py` has `Course` (marks, active mark, loop, 15 m arrival radius, upwind flag, demo triangle) and `SimAutopilot`, which feeds the Navigator the simulated sensors and applies its attitude to the servos exactly like `Corto.run_loop` does on the boat. Modes: manual, manual + auto-trim (the Navigator trims the sheet, you steer) and autopilot.
 * `simulator_integration.py` validates and clamps everything that comes from the network; bad input is a 400, never a 500.
+* `app/sources.py` wraps all of this as `SimSource`, one of the two sources the app can show. `STATE_KEYS` lists the keys `/api/state` always has; the real boat's `BoatSource` serves the same keys with `null` for what its LoRa protocol does not carry.
 
 ### Conventions
 
@@ -77,11 +82,11 @@ The Navigator steers straight at the active mark. A mark that is (nearly) upwind
 
 | Endpoint | |
 |---|---|
-| `GET /api/state` (alias `/api/boat-location`) | Telemetry (`heading cog sog stw tws twd twa aws awa heel rudder rudder_deg trim opt_trim throttle drift lat lng ...`), `mode`, `running`, `auto_trim`, `time_scale`, the `course` (marks, active mark, legs with an `upwind` flag) and `to_mark`. |
-| `POST /api/control` | `{command, value}` with `rudder` (-100..100), `sails` (0..100), `throttle` (0..100), `emergency_stop` or `set_environment`; and/or `{mode: "manual"\|"auto", running, auto_trim, time_scale}`. Numbers are clamped. |
+| `GET /api/state` (alias `/api/boat-location`) | Telemetry (`heading cog sog stw tws twd twa aws awa heel rudder rudder_deg trim opt_trim throttle drift lat lng ...`), `mode`, `running`, `auto_trim`, `time_scale`, the `course` (marks, active mark, legs with an `upwind` flag) and `to_mark`. Plus `source` (`"sim"` here, `"boat"` for the real boat), `link` (`{kind, state, age_s, fix, rssi, polls, replies}`; for the simulator always `state: "ok"`), `capabilities` (what the UI may offer: `manual auto_trim mode course run_course demo environment time_scale reset`, all true here) and `commanded` (`null` here). The keys are the same in both modes; the boat reports `null` for what its protocol lacks. |
+| `POST /api/control` | `{command, value}` with `rudder` (-100..100), `sails` (0..100), `throttle` (0..100), `emergency_stop` or `set_environment`; and/or `{mode: "manual"\|"auto", running, auto_trim, time_scale}`. Numbers are clamped. With the real boat only `rudder`, `sails`, `throttle`, `emergency_stop` and `running` exist; `mode`, `auto_trim`, `time_scale` and `set_environment` answer **409**. |
 | `POST /api/course` | `{marks: [{lat, lng}], loop?, active?}` replaces the course. `DELETE /api/course` clears it. |
-| `POST /api/course/demo` | `{scale?}` lays the demo triangle out from the boat and rotates it to the wind. |
-| `POST /api/reset` | `{lat?, lng?, heading?}` puts the boat back at rest with neutral controls. |
+| `POST /api/course/demo` | `{scale?}` lays the demo triangle out from the boat and rotates it to the wind. 409 with the real boat. |
+| `POST /api/reset` | `{lat?, lng?, heading?}` puts the boat back at rest with neutral controls. 409 with the real boat. |
 
 ## Tests
 
@@ -89,7 +94,7 @@ The Navigator steers straight at the active mark. A mark that is (nearly) upwind
 pip install pytest && pytest
 ```
 
-`src/test/python` covers the Navigator (right gives more than 50, left gives less than 50, a 1 degree deadband, proportional response, sail trim unchanged), the physics (port and starboard beam reaches match, the rudder turns both ways, no drive below 30 degrees, 100 m east is 100 m by haversine, apparent wind), the course (marks advance, the course loops, upwind legs are flagged), the autopilot lap, and the HTTP API.
+`src/test/python` covers the Navigator (right gives more than 50, left gives less than 50, a 1 degree deadband, proportional response, sail trim unchanged), the physics (port and starboard beam reaches match, the rudder turns both ways, no drive below 30 degrees, 100 m east is 100 m by haversine, apparent wind), the course (marks advance, the course loops, upwind legs are flagged), the autopilot lap, the HTTP API, and the real-boat link (`test_boat_link.py`: wire format, polling, link states, commands, the 409s, and the loopback boat).
 
 ## Limitations
 

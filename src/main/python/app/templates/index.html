@@ -1,9 +1,10 @@
+{%- set boat = source == 'boat' -%}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corto · boat simulator</title>
+    <title>{{ 'Corto' if boat else 'Corto · Simulator' }}</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1620'/%3E%3Cpath d='M16 5 L24 23 L16 20 Z' fill='%23e6edf3'/%3E%3Cpath d='M15 9 L15 20 L8 22 Z' fill='%2338bdf8'/%3E%3C/svg%3E">
 
     <!-- Leaflet (map) -->
@@ -16,7 +17,7 @@
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/corto.css') }}">
 </head>
-<body>
+<body data-source="{{ source }}">
 <div class="shell">
 
     <!-- Top bar -->
@@ -26,25 +27,26 @@
                 <path d="M16 4 L25 24 L16 21 Z" fill="#e6edf3"/>
                 <path d="M14.5 8 L14.5 21 L6 23.5 Z" fill="#38bdf8"/>
             </svg>
-            <span class="brand-name">Corto <span class="brand-dot">·</span> <span class="brand-sub">boat simulator</span></span>
+            <span class="brand-name">Corto <span class="source-badge {{ source }}" id="source-badge">{{ source_label }}</span></span>
         </div>
 
         <div class="seg mode-switch" id="mode-switch" role="tablist" aria-label="Steering mode">
             <button type="button" role="tab" data-mode="manual" aria-selected="true">Manual</button>
-            <button type="button" role="tab" data-mode="auto" aria-selected="false">Autopilot</button>
+            <button type="button" role="tab" data-mode="auto" aria-selected="false">{{ 'Course' if boat else 'Autopilot' }}</button>
         </div>
 
         <div class="topbar-right">
             <div class="env-wrap">
-                <button type="button" class="chip wind-chip" id="wind-chip" aria-haspopup="dialog" aria-expanded="false"
-                        title="Wind and current">
+                <button type="button" class="chip wind-chip" id="wind-chip"{% if boat %} disabled
+                        title="True wind direction, as reported by the boat"{% else %} aria-haspopup="dialog" aria-expanded="false"
+                        title="Wind and current"{% endif %}>
                     <svg class="wind-chip-arrow" id="wind-chip-arrow" viewBox="0 0 20 20" aria-hidden="true">
                         <path d="M10 2 L10 15 M5 10.5 L10 16 L15 10.5" fill="none" stroke="currentColor" stroke-width="2"
                               stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <span id="wind-chip-text">Wind --</span>
                 </button>
-                <div class="popover" id="env-popover" role="dialog" aria-label="Environment" hidden>
+                <div class="popover sim-only" id="env-popover" role="dialog" aria-label="Environment" hidden>
                     <div class="popover-title">Environment <span class="hint">changes apply live</span></div>
                     <label class="row">
                         <span class="row-label">Wind speed</span>
@@ -69,14 +71,14 @@
                 </div>
             </div>
 
-            <div class="seg warp" id="warp" role="group" aria-label="Simulation speed">
+            <div class="seg warp sim-only" id="warp" role="group" aria-label="Simulation speed">
                 <button type="button" data-warp="1" aria-pressed="false">1×</button>
                 <button type="button" data-warp="5" aria-pressed="false">5×</button>
                 <button type="button" data-warp="15" aria-pressed="true">15×</button>
             </div>
 
             <div class="live" id="live" title="Connecting…">
-                <span class="live-dot"></span><span class="live-text">Live</span>
+                <span class="live-dot"></span><span class="live-text">{{ 'Connecting…' if boat else 'Live' }}</span>
             </div>
         </div>
     </header>
@@ -84,6 +86,7 @@
     <main class="stage">
         <div id="map" role="application" aria-label="Map"></div>
 
+        <div class="link-banner" id="link-banner" role="status" aria-live="polite" hidden></div>
         <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
         <!-- Instrument rail -->
@@ -127,7 +130,7 @@
                 </svg>
                 <div class="dial-legend">
                     <span class="lg true"><i></i>True wind</span>
-                    <span class="lg app"><i></i>Apparent</span>
+                    <span class="lg app" id="lg-app"><i></i>Apparent</span>
                     <span class="lg mark"><i></i>Mark</span>
                 </div>
             </div>
@@ -197,7 +200,7 @@
                 <div class="ctl">
                     <div class="ctl-head">
                         <label for="sheet-slider">Sheet</label>
-                        <label class="check"><input type="checkbox" id="auto-trim"><span>Auto-trim</span></label>
+                        <label class="check sim-only"><input type="checkbox" id="auto-trim"><span>Auto-trim</span></label>
                         <output id="sheet-out">0</output>
                     </div>
                     <div class="slider-opt-wrap">
@@ -214,20 +217,20 @@
             </div>
 
             <div class="dock-panel" id="panel-auto" hidden>
-                <div class="hint auto-hint" id="auto-hint">Click the map to add marks</div>
+                <div class="hint auto-hint" id="auto-hint">{{ 'Click the map to add marks, then send them to the boat' if boat else 'Click the map to add marks' }}</div>
                 <div class="chips" id="mark-chips" aria-label="Marks"></div>
                 <div class="auto-status" id="auto-status"></div>
                 <div class="btn-row">
-                    <button type="button" class="btn" id="btn-demo">Demo course</button>
-                    <button type="button" class="btn primary" id="btn-start">Start</button>
-                    <button type="button" class="btn" id="btn-clear">Clear</button>
+                    <button type="button" class="btn sim-only" id="btn-demo">Demo course</button>
+                    <button type="button" class="btn primary" id="btn-start">{{ 'Send to boat' if boat else 'Start' }}</button>
+                    <button type="button" class="btn" id="btn-clear"{% if boat %} title="Clears the marks here. The boat keeps steering to the last destination it was sent."{% endif %}>Clear</button>
                     <label class="check loop"><input type="checkbox" id="loop-toggle" checked><span>Loop</span></label>
                 </div>
             </div>
 
             <div class="dock-foot">
-                <button type="button" class="btn stop" id="btn-stop" title="Centre the rudder, sheet and motor to 0, manual mode">Stop</button>
-                <button type="button" class="btn ghost" id="btn-reset" title="Put the boat back at the start">Reset</button>
+                <button type="button" class="btn stop" id="btn-stop" title="{{ 'Send rudder centre, sheet 0 and motor 0 to the boat, and stop sending the course' if boat else 'Centre the rudder, sheet and motor to 0, manual mode' }}">Stop</button>
+                <button type="button" class="btn ghost sim-only" id="btn-reset" title="Put the boat back at the start">Reset</button>
                 <button type="button" class="btn ghost" id="btn-follow" aria-pressed="false" title="Follow camera (F)">Follow <kbd>F</kbd></button>
                 <span class="hint keys">← → rudder · ↑ ↓ sheet</span>
             </div>

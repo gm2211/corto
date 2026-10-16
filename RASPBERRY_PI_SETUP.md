@@ -156,6 +156,32 @@ The controller component consists of:
 
 5. To stop the transmitter code, press `Ctrl+C`.
 
+## Running the Web App on the Controller
+
+The web app shows the boat on a map with its instruments and lets you steer it and send it marks. It runs on the controller Pi, the one with the LoRa radio bonnet, and talks to the boat over the same radio.
+
+1. Both Pis must run this version of the code. The radio driver (`lora/radio.py`) now keeps listening after it sends; before that fix the controller never heard the boat's reply, and the boat stopped listening after its first one.
+2. Install the Flask dependencies if the controller's environment does not have them: `pip install flask ultraimport` (or `poetry install`).
+3. Start the boat as usual (`src/main/python/boat/run.sh`), then on the controller, from the repo root:
+   ```bash
+   PYTHONPATH=src/main/python python src/main/python/app/app.py --source boat --host 0.0.0.0 --port 5000
+   ```
+   and open `http://<the controller's address>:5000` from a laptop or phone on the same network.
+4. Only one program can use the radio at a time, so **the app replaces `transmitter/run.sh` (the knobs) while it runs**. Stop one before starting the other.
+5. The app has no login: anyone who can reach the address can drive the boat. Bind `0.0.0.0` only on a network you trust (or leave the default `127.0.0.1` and tunnel in with SSH).
+
+Options: `--source {auto,boat,sim}` (default `auto`: the boat if the radio libraries are there and the radio opens, else the simulator, and it says which), `--radio {lora,loopback,silent}` (boat only: `loopback` is a simulated boat behind a fake radio, `silent` never answers), `--poll-interval SECONDS` (default 2), `--host`, `--port`.
+
+### What you should see
+
+* The app asks the boat for telemetry every 2 seconds. The indicator at the top right is **Live** while the last report is at most 5 seconds old, shows its age in amber (for example "12 s ago") up to 20 seconds, and **No link** in red after that, with a banner. **Connecting…** is the first 20 seconds before the first report. The map keeps the last known position, faded.
+* The boat currently reports placeholder GPS (0, 0): there is no GPS driver yet. The app shows **No GPS fix** and hides the boat on the map until a position arrives. Heading, wind, speed and rudder are shown as the boat reports them; today the wind vane and speed sensor are not wired either, so expect zeros.
+* The rudder, sheet and motor sliders send `R`, `S` and `TR` commands (whole percents). **Stop** sends rudder centre, sheet 0 and motor 0, and stops sending the course. There are no acknowledgements, so commands are best effort. The boat's main loop (`Corto.run_loop`) steers to its last destination (it starts at 0, 0) and overrides manual rudder commands whenever its navigator's attitude changes.
+* The **Course** tab keeps the marks in the app. **Send to boat** sends the active mark as a destination (`D<lat>,<lon>`, repeated every 10 seconds) and moves to the next one when the boat reports being within 15 m. The boat has no command to clear its destination, so after Stop or Clear it keeps steering to the last one it was given.
+* Not available with the real boat, so hidden: manual/autopilot mode, auto-trim, time warp, wind and current, Reset and the demo course. The API answers 409 for them.
+
+Bench test before the first sail (not part of the automated tests): both Pis on this commit; **Live** within about 2 seconds of starting the app; a rudder slider move turns the servo; power the boat off and the indicator turns amber after 5 seconds and **No link** after 20. The rudder servo's direction (which way a given `RudderPosition` moves it) still needs checking on the bench, and the map needs internet for its tiles (Leaflet and OpenStreetMap load from the web).
+
 ## Troubleshooting
 
 ### Common Issues
